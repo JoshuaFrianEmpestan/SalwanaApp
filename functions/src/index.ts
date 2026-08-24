@@ -24,3 +24,6 @@ export * from "./reservations/updateReservationStatus";
 export * from "./reservations/expireReservations";
 export * from "./payments/processPayment";
 export * from "./orders/updateOrderStatus";
+export * from "./restocking/createRestockRequest";
+export * from "./restocking/respondToRestockRequest";
+export * from "./restocking/confirmRestockDelivery";

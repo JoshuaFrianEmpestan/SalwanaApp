@@ -30,7 +30,18 @@ import '../../features/consumer/presentation/reservation_detail_screen.dart';
 import '../../features/consumer/presentation/reserve_product_screen.dart';
 import '../../features/consumer/presentation/store_browse_screen.dart';
 import '../../features/consumer/presentation/store_detail_screen.dart';
+import '../../features/merchant/presentation/confirm_delivery_screen.dart';
 import '../../features/merchant/presentation/merchant_orders_tab_screen.dart';
+import '../../features/merchant/presentation/restock_request_detail_screen.dart';
+import '../../features/merchant/presentation/restock_request_form_screen.dart';
+import '../../features/merchant/presentation/supplier_detail_screen.dart';
+import '../../features/merchant/presentation/supplier_directory_screen.dart';
+import '../../features/supplier/presentation/company_profile_screen.dart';
+import '../../features/supplier/presentation/supplier_dashboard_screen.dart';
+import '../../features/supplier/presentation/supplier_product_form_screen.dart';
+import '../../features/supplier/presentation/supplier_products_list_screen.dart';
+import '../../features/supplier/presentation/supplier_requests_list_screen.dart';
+import '../../features/supplier/presentation/supplier_transactions_screen.dart';
 import '../../features/merchant/presentation/inventory_list_screen.dart';
 import '../../features/merchant/presentation/merchant_profile_screen.dart';
 import '../../features/merchant/presentation/product_detail_screen.dart';
@@ -222,44 +233,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
         branches: [
           StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/supplier/dashboard',
-              builder: (context, state) => const ComingSoonScreen(
-                title: 'Dashboard',
-                moduleNote: 'Supplier & restocking workflow (module 9) builds this next.',
-                icon: Icons.dashboard_outlined,
-              ),
-            ),
+            GoRoute(path: '/supplier/dashboard', builder: (context, state) => const SupplierDashboardScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/supplier/requests',
-              builder: (context, state) => const ComingSoonScreen(
-                title: 'Requests',
-                moduleNote: 'Restocking requests from merchants (module 9).',
-                icon: Icons.assignment_outlined,
-              ),
-            ),
+            GoRoute(path: '/supplier/requests', builder: (context, state) => const SupplierRequestsListScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/supplier/products',
-              builder: (context, state) => const ComingSoonScreen(
-                title: 'Products',
-                moduleNote: 'Manage supplies you offer to merchants (module 9).',
-                icon: Icons.inventory_outlined,
-              ),
-            ),
+            GoRoute(path: '/supplier/products', builder: (context, state) => const SupplierProductsListScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/supplier/transactions',
-              builder: (context, state) => const ComingSoonScreen(
-                title: 'Transactions',
-                moduleNote: 'Supply transaction & payment history (module 9).',
-                icon: Icons.receipt_long_outlined,
-              ),
-            ),
+            GoRoute(path: '/supplier/transactions', builder: (context, state) => const SupplierTransactionsScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/supplier/profile', builder: (context, state) => const SupplierProfileScreen()),
@@ -373,6 +356,35 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => ReservationDetailScreen(reservationId: state.pathParameters['id']!),
       ),
 
+      // ---------------- Supplier restocking (§9) ----------------
+      GoRoute(path: '/supplier/company', builder: (context, state) => const CompanyProfileScreen()),
+      GoRoute(path: '/supplier/products/new', builder: (context, state) => const SupplierProductFormScreen()),
+      GoRoute(
+        path: '/supplier/products/:id/edit',
+        builder: (context, state) => SupplierProductFormScreen(productId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/supplier/requests/:id',
+        builder: (context, state) => RestockRequestDetailScreen(requestId: state.pathParameters['id']!),
+      ),
+      GoRoute(path: '/merchant/suppliers', builder: (context, state) => const SupplierDirectoryScreen()),
+      GoRoute(
+        path: '/merchant/suppliers/:id',
+        builder: (context, state) => SupplierDetailScreen(supplierId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/merchant/suppliers/:id/request',
+        builder: (context, state) => RestockRequestFormScreen(supplierId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/merchant/restock-requests/:id',
+        builder: (context, state) => RestockRequestDetailScreen(requestId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/merchant/restock-requests/:id/confirm-delivery',
+        builder: (context, state) => ConfirmDeliveryScreen(requestId: state.pathParameters['id']!),
+      ),
+
       // ---------------- Merchant product detail / form ----------------
       GoRoute(path: '/merchant/products/new', builder: (context, state) => const ProductFormScreen()),
       GoRoute(
@@ -410,14 +422,12 @@ final _pendingDetailRoutes = <RouteBase>[
     ('/consumer/followed', 'Followed Products', 'Back-in-stock following (module 9).'),
     ('/consumer/notification-settings', 'Notification Preferences', 'Notification center (module 12).'),
     ('/consumer/security', 'Security', 'Security settings (module 1 follow-up).'),
-    ('/merchant/suppliers', 'Suppliers', 'Supplier directory (module 9).'),
     ('/merchant/barcode-settings', 'Barcode / QR Settings', 'Optional barcode/QR module (module 11).'),
     ('/merchant/reviews', 'Store Reviews', 'Store reviews & responses (module 11).'),
     ('/merchant/subscription', 'Subscription Plan', 'Subscription plans (module 14).'),
     ('/merchant/reports', 'Reports', 'Sales/inventory/financial reports (module 15).'),
     ('/merchant/notification-settings', 'Notification Preferences', 'Notification center (module 12).'),
     ('/merchant/security', 'Security', 'Security settings (module 1 follow-up).'),
-    ('/supplier/company', 'Company Profile', 'Supplier profile management (module 9).'),
     ('/supplier/notification-settings', 'Notification Settings', 'Notification center (module 12).'),
     ('/supplier/security', 'Security', 'Security settings (module 1 follow-up).'),
     ('/admin/categories', 'Product Categories', 'Category management (module 16).'),

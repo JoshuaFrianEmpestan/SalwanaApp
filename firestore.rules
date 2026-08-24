@@ -214,13 +214,12 @@ service cloud.firestore {
     }
 
     // ---------------- restock_requests / supplier_deliveries ----------------
+    // Created/updated only by createRestockRequest, respondToRestockRequest,
+    // and confirmRestockDelivery — same reasoning as orders/reservations.
     match /restock_requests/{requestId} {
       allow read: if isSignedIn() &&
         (resource.data.merchantId == request.auth.uid || resource.data.supplierId == request.auth.uid || isAdmin());
-      allow create: if isRole('merchant') && request.resource.data.merchantId == request.auth.uid;
-      allow update: if isSignedIn() &&
-        (resource.data.merchantId == request.auth.uid || resource.data.supplierId == request.auth.uid || isAdmin());
-      allow delete: if false;
+      allow write: if false;
     }
 
     match /supplier_deliveries/{deliveryId} {
