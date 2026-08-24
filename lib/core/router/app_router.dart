@@ -47,6 +47,7 @@ import '../../features/merchant/presentation/loan_detail_screen.dart';
 import '../../features/merchant/presentation/loan_form_screen.dart';
 import '../../features/merchant/presentation/loans_screen.dart';
 import '../../features/merchant/presentation/merchant_dashboard_screen.dart';
+import '../../features/merchant/presentation/reports_screen.dart';
 import '../../features/merchant/presentation/merchant_orders_tab_screen.dart';
 import '../../features/merchant/presentation/restock_request_detail_screen.dart';
 import '../../features/merchant/presentation/restock_request_form_screen.dart';
@@ -390,6 +391,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => CreditDetailScreen(accountId: state.pathParameters['id']!),
       ),
       GoRoute(path: '/merchant/subscription', builder: (context, state) => const SubscriptionScreen()),
+      GoRoute(path: '/merchant/reports', builder: (context, state) => const ReportsScreen()),
       GoRoute(path: '/admin/subscription-plans', builder: (context, state) => const AdminSubscriptionPlansScreen()),
       GoRoute(path: '/consumer/credit', builder: (context, state) => const ConsumerCreditScreen()),
       GoRoute(
@@ -463,7 +465,6 @@ final _pendingDetailRoutes = <RouteBase>[
     ('/consumer/notification-settings', 'Notification Preferences', 'Notification center (module 12).'),
     ('/consumer/security', 'Security', 'Security settings (module 1 follow-up).'),
     ('/merchant/barcode-settings', 'Barcode / QR Settings', 'Optional barcode/QR module (module 11).'),
-    ('/merchant/reports', 'Reports', 'Sales/inventory/financial reports (module 15).'),
     ('/merchant/notification-settings', 'Notification Preferences', 'Notification center (module 12).'),
     ('/merchant/security', 'Security', 'Security settings (module 1 follow-up).'),
     ('/supplier/notification-settings', 'Notification Settings', 'Notification center (module 12).'),
