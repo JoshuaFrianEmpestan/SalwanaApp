@@ -1,0 +1,36 @@
+rules_version = '2';
+
+// Salwana Cloud Storage rules — product images, store logos/banners, and
+// generated report exports.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidImage() {
+      return request.resource.size < 8 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+
+    // Store logos/banners and product images — publicly readable (used in
+    // the consumer catalog), writable only by the owning merchant.
+    match /stores/{merchantId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.uid == merchantId && isValidImage();
+    }
+
+    // Consumer profile photos.
+    match /users/{uid}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.uid == uid && isValidImage();
+    }
+
+    // Generated reports — private, Cloud Functions write them; owner reads.
+    match /reports/{uid}/{allPaths=**} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+  }
+}

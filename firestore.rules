@@ -1,0 +1,269 @@
+rules_version = '2';
+
+// Salwana Firestore security rules.
+//
+// Design: role and ownership are enforced here (not just in the client),
+// per §20/§21. Collections that must be transaction-safe or append-only
+// (payments, digital_receipts, inventory_movements, audit_logs) are
+// written exclusively by Cloud Functions using the Admin SDK, which
+// bypasses these rules — client writes to them are denied outright so a
+// compromised/modified client can never fabricate a receipt, backdate a
+// stock movement, or edit the audit trail.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+
+    function myRole() {
+      return userDoc(request.auth.uid).role;
+    }
+
+    function myStatus() {
+      return userDoc(request.auth.uid).status;
+    }
+
+    function isActive() {
+      return isSignedIn() && myStatus() == 'active';
+    }
+
+    function isRole(role) {
+      return isSignedIn() && myRole() == role;
+    }
+
+    function isAdmin() {
+      return isRole('admin');
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isStoreOwner(storeId) {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/stores/$(storeId)).data.merchantId == request.auth.uid;
+    }
+
+    // ---------------- users ----------------
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid);
+      // Users may update their own non-privileged fields; role/status
+      // changes are restricted to admins (enforced further via Functions
+      // for audit logging — this rule only stops a client from
+      // self-promoting or un-suspending).
+      allow update: if isOwner(uid) &&
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.status == resource.data.status
+        || isAdmin();
+      allow delete: if false;
+    }
+
+    // ---------------- addresses ----------------
+    match /addresses/{addressId} {
+      allow read, write: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    // ---------------- stores ----------------
+    match /stores/{storeId} {
+      allow read: if true; // public storefront browsing
+      allow create: if isRole('merchant') && request.resource.data.merchantId == request.auth.uid;
+      allow update: if (isRole('merchant') && resource.data.merchantId == request.auth.uid &&
+                          request.resource.data.merchantId == resource.data.merchantId &&
+                          request.resource.data.verificationStatus == resource.data.verificationStatus) ||
+                        isAdmin();
+      allow delete: if false;
+    }
+
+    // ---------------- product_categories ----------------
+    match /product_categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---------------- products ----------------
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isRole('merchant') && request.resource.data.merchantId == request.auth.uid;
+      allow update: if (isRole('merchant') && resource.data.merchantId == request.auth.uid) || isAdmin();
+      allow delete: if false; // archive via status field instead of hard delete
+    }
+
+    // ---------------- inventory_movements (Functions-only writes) ----------------
+    match /inventory_movements/{movementId} {
+      allow read: if isSignedIn() &&
+        (isAdmin() || isStoreOwner(resource.data.storeId));
+      allow write: if false;
+    }
+
+    // ---------------- carts (per-user) ----------------
+    match /carts/{userId} {
+      allow read, write: if isOwner(userId);
+      match /items/{productId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // ---------------- orders ----------------
+    match /orders/{orderId} {
+      allow read: if isSignedIn() &&
+        (resource.data.consumerId == request.auth.uid || resource.data.merchantId == request.auth.uid || isAdmin());
+      allow create: if false; // created transactionally by checkout Cloud Function
+      // Merchant may only move status forward through valid actions; kept
+      // permissive here and validated more strictly inside Cloud Functions
+      // that front the status-change buttons in the UI.
+      allow update: if isSignedIn() &&
+        (resource.data.merchantId == request.auth.uid || isAdmin());
+      allow delete: if false;
+    }
+
+    // ---------------- reservations ----------------
+    match /reservations/{reservationId} {
+      allow read: if isSignedIn() &&
+        (resource.data.consumerId == request.auth.uid || resource.data.merchantId == request.auth.uid || isAdmin());
+      allow create: if false; // created transactionally by reservation Cloud Function
+      allow update: if isSignedIn() &&
+        (resource.data.merchantId == request.auth.uid || resource.data.consumerId == request.auth.uid || isAdmin());
+      allow delete: if false;
+    }
+
+    // ---------------- payments / digital_receipts (Functions-only) ----------------
+    match /payments/{paymentId} {
+      allow read: if isSignedIn() &&
+        (resource.data.consumerId == request.auth.uid || resource.data.merchantId == request.auth.uid || isAdmin());
+      allow write: if false;
+    }
+
+    match /digital_receipts/{receiptId} {
+      allow read: if isSignedIn(); // narrowed via query filters client-side + Function-issued custom claims later
+      allow write: if false;
+    }
+
+    // ---------------- expenses / capital_entries ----------------
+    match /expenses/{expenseId} {
+      allow read, write: if isSignedIn() && (resource.data.merchantId == request.auth.uid || isAdmin());
+      allow create: if isRole('merchant') && request.resource.data.merchantId == request.auth.uid;
+    }
+
+    match /capital_entries/{entryId} {
+      allow read, write: if isSignedIn() && (resource.data.merchantId == request.auth.uid || isAdmin());
+      allow create: if isRole('merchant') && request.resource.data.merchantId == request.auth.uid;
+    }
+
+    // ---------------- merchant_loans ----------------
+    match /merchant_loans/{loanId} {
+      allow read, write: if isSignedIn() && (resource.data.merchantId == request.auth.uid || isAdmin());
+      allow create: if isRole('merchant') && request.resource.data.merchantId == request.auth.uid;
+      match /payments/{paymentId} {
+        allow read, write: if isSignedIn() &&
+          (get(/databases/$(database)/documents/merchant_loans/$(loanId)).data.merchantId == request.auth.uid || isAdmin());
+      }
+    }
+
+    // ---------------- consumer_credit_accounts ----------------
+    match /consumer_credit_accounts/{accountId} {
+      allow read: if isSignedIn() &&
+        (resource.data.merchantId == request.auth.uid || resource.data.consumerId == request.auth.uid || isAdmin());
+      allow create: if isRole('merchant') && request.resource.data.merchantId == request.auth.uid;
+      allow update: if isSignedIn() && (resource.data.merchantId == request.auth.uid || isAdmin());
+      allow delete: if false;
+      match /payments/{paymentId} {
+        allow read: if isSignedIn() &&
+          (get(/databases/$(database)/documents/consumer_credit_accounts/$(accountId)).data.merchantId == request.auth.uid ||
+           get(/databases/$(database)/documents/consumer_credit_accounts/$(accountId)).data.consumerId == request.auth.uid ||
+           isAdmin());
+        allow write: if isSignedIn() &&
+          get(/databases/$(database)/documents/consumer_credit_accounts/$(accountId)).data.merchantId == request.auth.uid;
+      }
+    }
+
+    // ---------------- suppliers / supplier_products ----------------
+    match /suppliers/{supplierId} {
+      allow read: if true;
+      allow create: if isRole('supplier') && request.resource.data.userId == request.auth.uid;
+      allow update: if (isRole('supplier') && resource.data.userId == request.auth.uid &&
+                          request.resource.data.verificationStatus == resource.data.verificationStatus) ||
+                        isAdmin();
+      allow delete: if false;
+    }
+
+    match /supplier_products/{productId} {
+      allow read: if true;
+      allow create: if isRole('supplier') && request.resource.data.supplierId == request.auth.uid;
+      allow update, delete: if isRole('supplier') && resource.data.supplierId == request.auth.uid;
+    }
+
+    // ---------------- restock_requests / supplier_deliveries ----------------
+    match /restock_requests/{requestId} {
+      allow read: if isSignedIn() &&
+        (resource.data.merchantId == request.auth.uid || resource.data.supplierId == request.auth.uid || isAdmin());
+      allow create: if isRole('merchant') && request.resource.data.merchantId == request.auth.uid;
+      allow update: if isSignedIn() &&
+        (resource.data.merchantId == request.auth.uid || resource.data.supplierId == request.auth.uid || isAdmin());
+      allow delete: if false;
+    }
+
+    match /supplier_deliveries/{deliveryId} {
+      allow read: if isSignedIn() &&
+        (resource.data.merchantId == request.auth.uid || resource.data.supplierId == request.auth.uid || isAdmin());
+      allow write: if false; // Cloud Functions only — inventory increases on merchant confirmation
+    }
+
+    // ---------------- store_reviews ----------------
+    match /store_reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isRole('consumer') && request.resource.data.consumerId == request.auth.uid;
+      allow update: if isSignedIn() &&
+        (resource.data.consumerId == request.auth.uid || isStoreOwner(resource.data.storeId) || isAdmin());
+      allow delete: if false;
+    }
+
+    // ---------------- notifications ----------------
+    match /notifications/{notificationId} {
+      allow read, update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if false; // Cloud Functions only
+      allow delete: if false;
+    }
+
+    // ---------------- followed_products ----------------
+    match /followed_products/{followId} {
+      allow read, write: if isSignedIn() && resource.data.consumerId == request.auth.uid;
+      allow create: if isRole('consumer') && request.resource.data.consumerId == request.auth.uid;
+    }
+
+    // ---------------- subscription_plans / subscriptions ----------------
+    match /subscription_plans/{planId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /subscriptions/{subscriptionId} {
+      allow read: if isSignedIn() && (resource.data.merchantId == request.auth.uid || isAdmin());
+      allow write: if isAdmin(); // activation/expiry managed by admin & Functions
+    }
+
+    // ---------------- reports ----------------
+    match /reports/{reportId} {
+      allow read: if isSignedIn() && (resource.data.generatedByUserId == request.auth.uid || isAdmin());
+      allow write: if false; // Cloud Functions only
+    }
+
+    // ---------------- audit_logs (Functions-only writes) ----------------
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ---------------- application_settings ----------------
+    match /application_settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
