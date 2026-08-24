@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/constants/enums.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/consumer_product_card.dart';
 import '../../../core/widgets/notification_bell.dart';
+import '../../../core/widgets/order_list_tile.dart';
+import '../../../core/widgets/reservation_list_tile.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../core/widgets/store_card.dart';
 import '../data/catalog_repository.dart';
+import '../data/order_repository.dart';
+import '../data/reservation_repository.dart';
 
 class ConsumerHomeScreen extends ConsumerStatefulWidget {
   const ConsumerHomeScreen({super.key});
@@ -31,6 +36,11 @@ class _ConsumerHomeScreenState extends ConsumerState<ConsumerHomeScreen> {
     final user = ref.watch(appUserProvider).valueOrNull;
     final storesAsync = ref.watch(activeStoresProvider);
     final productsAsync = ref.watch(catalogFeedProvider);
+    final ordersAsync = ref.watch(consumerOrdersProvider);
+    final reservationsAsync = ref.watch(consumerReservationsProvider);
+
+    final activeOrders = (ordersAsync.valueOrNull ?? const []).where((o) => o.status.isActive).toList();
+    final activeReservations = (reservationsAsync.valueOrNull ?? const []).where((r) => !r.status.isTerminal).toList();
 
     return Scaffold(
       body: SafeArea(
@@ -73,6 +83,38 @@ class _ConsumerHomeScreenState extends ConsumerState<ConsumerHomeScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+              if (activeOrders.isNotEmpty || activeReservations.isNotEmpty) ...[
+                if (activeOrders.isNotEmpty) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Active Orders', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                      TextButton(onPressed: () => context.go('/consumer/orders'), child: const Text('See all')),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  for (final o in activeOrders.take(3)) ...[
+                    OrderListTile(order: o, onTap: () => context.push('/consumer/order-details/${o.id}')),
+                    const SizedBox(height: 8),
+                  ],
+                  const SizedBox(height: 10),
+                ],
+                if (activeReservations.isNotEmpty) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Current Reservations', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                      TextButton(onPressed: () => context.go('/consumer/orders'), child: const Text('See all')),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  for (final r in activeReservations.take(3)) ...[
+                    ReservationListTile(reservation: r, onTap: () => context.push('/consumer/reservations/${r.id}')),
+                    const SizedBox(height: 8),
+                  ],
+                ],
+                const SizedBox(height: 14),
+              ],
               storesAsync.when(
                 loading: () => const _SectionSkeleton(),
                 error: (e, _) => const SizedBox.shrink(),

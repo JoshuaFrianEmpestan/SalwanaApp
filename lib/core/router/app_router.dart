@@ -6,6 +6,7 @@ import '../../core/providers/app_prefs_providers.dart';
 import '../../core/providers/firebase_providers.dart';
 import '../../core/widgets/coming_soon_screen.dart';
 import '../../core/widgets/role_scaffold.dart';
+import '../../features/admin/presentation/admin_dashboard_screen.dart';
 import '../../features/admin/presentation/admin_settings_screen.dart';
 import '../../features/auth/presentation/account_blocked_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
@@ -44,6 +45,7 @@ import '../../features/merchant/presentation/finance_home_screen.dart';
 import '../../features/merchant/presentation/loan_detail_screen.dart';
 import '../../features/merchant/presentation/loan_form_screen.dart';
 import '../../features/merchant/presentation/loans_screen.dart';
+import '../../features/merchant/presentation/merchant_dashboard_screen.dart';
 import '../../features/merchant/presentation/merchant_orders_tab_screen.dart';
 import '../../features/merchant/presentation/restock_request_detail_screen.dart';
 import '../../features/merchant/presentation/restock_request_form_screen.dart';
@@ -201,14 +203,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
         branches: [
           StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/merchant/dashboard',
-              builder: (context, state) => const ComingSoonScreen(
-                title: 'Dashboard',
-                moduleNote: 'Merchant store & product management (module 3) builds this next.',
-                icon: Icons.dashboard_outlined,
-              ),
-            ),
+            GoRoute(path: '/merchant/dashboard', builder: (context, state) => const MerchantDashboardScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/merchant/inventory', builder: (context, state) => const InventoryListScreen()),
@@ -270,14 +265,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
         branches: [
           StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/admin/dashboard',
-              builder: (context, state) => const ComingSoonScreen(
-                title: 'Dashboard',
-                moduleNote: 'Admin panel (module 16) builds this next.',
-                icon: Icons.dashboard_outlined,
-              ),
-            ),
+            GoRoute(path: '/admin/dashboard', builder: (context, state) => const AdminDashboardScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(

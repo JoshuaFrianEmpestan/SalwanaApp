@@ -58,6 +58,31 @@ class FinanceRepository {
     return (sales, cogs);
   }
 
+  /// Daily revenue for the last [days] days (§13 merchant dashboard sales
+  /// chart) — real data bucketed client-side from `transactions`, never a
+  /// placeholder series.
+  Future<List<(DateTime day, double amount)>> salesChartData(String merchantId, {int days = 7}) async {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day).subtract(Duration(days: days - 1));
+    final snap = await _db
+        .collection('transactions')
+        .where('merchantId', isEqualTo: merchantId)
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .get();
+
+    final buckets = <DateTime, double>{
+      for (int i = 0; i < days; i++) DateTime(start.year, start.month, start.day).add(Duration(days: i)): 0,
+    };
+    for (final doc in snap.docs) {
+      final t = TransactionRecord.fromMap(doc.id, doc.data());
+      if (t.reversed) continue;
+      final day = DateTime(t.createdAt.year, t.createdAt.month, t.createdAt.day);
+      if (buckets.containsKey(day)) buckets[day] = (buckets[day] ?? 0) + t.amount;
+    }
+    final entries = buckets.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
+    return entries.map((e) => (e.key, e.value)).toList();
+  }
+
   Future<double> _expensesInRange(String merchantId, DateTime start, DateTime end) async {
     final snap = await _db
         .collection('expenses')
