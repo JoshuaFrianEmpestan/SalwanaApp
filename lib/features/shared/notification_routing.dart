@@ -19,6 +19,17 @@ String? notificationDeepLink(AppNotification n, UserRole viewerRole) {
       return viewerRole == UserRole.supplier ? '/supplier/requests/$id' : '/merchant/restock-requests/$id';
     case 'store_review':
       return viewerRole == UserRole.merchant ? '/merchant/reviews' : null;
+    case 'user':
+      // Account verification / suspension notices — route to the
+      // recipient's own profile so they can see their current status.
+      return switch (viewerRole) {
+        UserRole.merchant => '/merchant/profile',
+        UserRole.supplier => '/supplier/profile',
+        UserRole.admin => '/admin/settings',
+        UserRole.consumer => '/consumer/profile',
+      };
+    case 'subscription':
+      return viewerRole == UserRole.merchant ? '/merchant/subscription' : null;
     default:
       return null;
   }

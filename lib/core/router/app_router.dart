@@ -6,9 +6,16 @@ import '../../core/providers/app_prefs_providers.dart';
 import '../../core/providers/firebase_providers.dart';
 import '../../core/widgets/coming_soon_screen.dart';
 import '../../core/widgets/role_scaffold.dart';
+import '../../features/admin/presentation/admin_audit_log_screen.dart';
+import '../../features/admin/presentation/admin_categories_screen.dart';
 import '../../features/admin/presentation/admin_dashboard_screen.dart';
+import '../../features/admin/presentation/admin_platform_settings_screen.dart';
+import '../../features/admin/presentation/admin_reports_moderation_screen.dart';
 import '../../features/admin/presentation/admin_settings_screen.dart';
 import '../../features/admin/presentation/admin_subscription_plans_screen.dart';
+import '../../features/admin/presentation/admin_transactions_screen.dart';
+import '../../features/admin/presentation/admin_user_detail_screen.dart';
+import '../../features/admin/presentation/admin_users_screen.dart';
 import '../../features/auth/presentation/account_blocked_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
@@ -271,24 +278,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             GoRoute(path: '/admin/dashboard', builder: (context, state) => const AdminDashboardScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/admin/users',
-              builder: (context, state) => const ComingSoonScreen(
-                title: 'Users',
-                moduleNote: 'Manage & verify consumer, merchant, and supplier accounts (module 16).',
-                icon: Icons.people_outline_rounded,
-              ),
-            ),
+            GoRoute(path: '/admin/users', builder: (context, state) => const AdminUsersScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/admin/transactions',
-              builder: (context, state) => const ComingSoonScreen(
-                title: 'Transactions',
-                moduleNote: 'Platform-wide orders, payments & subscriptions (module 16).',
-                icon: Icons.receipt_long_outlined,
-              ),
-            ),
+            GoRoute(path: '/admin/transactions', builder: (context, state) => const AdminTransactionsScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
@@ -393,6 +386,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/merchant/subscription', builder: (context, state) => const SubscriptionScreen()),
       GoRoute(path: '/merchant/reports', builder: (context, state) => const ReportsScreen()),
       GoRoute(path: '/admin/subscription-plans', builder: (context, state) => const AdminSubscriptionPlansScreen()),
+      GoRoute(path: '/admin/categories', builder: (context, state) => const AdminCategoriesScreen()),
+      GoRoute(path: '/admin/payment-settings', builder: (context, state) => const AdminPlatformSettingsScreen()),
+      GoRoute(path: '/admin/reservation-rules', builder: (context, state) => const AdminPlatformSettingsScreen()),
+      GoRoute(path: '/admin/reports-moderation', builder: (context, state) => const AdminReportsModerationScreen()),
+      GoRoute(path: '/admin/audit-log', builder: (context, state) => const AdminAuditLogScreen()),
+      GoRoute(
+        path: '/admin/users/:id',
+        builder: (context, state) => AdminUserDetailScreen(userId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/admin/order-details/:id',
+        builder: (context, state) => OrderDetailScreen(orderId: state.pathParameters['id']!),
+      ),
       GoRoute(path: '/consumer/credit', builder: (context, state) => const ConsumerCreditScreen()),
       GoRoute(
         path: '/consumer/credit/:id',
@@ -469,11 +475,6 @@ final _pendingDetailRoutes = <RouteBase>[
     ('/merchant/security', 'Security', 'Security settings (module 1 follow-up).'),
     ('/supplier/notification-settings', 'Notification Settings', 'Notification center (module 12).'),
     ('/supplier/security', 'Security', 'Security settings (module 1 follow-up).'),
-    ('/admin/categories', 'Product Categories', 'Category management (module 16).'),
-    ('/admin/payment-settings', 'Payment Options & Fees', 'Platform settings (module 16).'),
-    ('/admin/reservation-rules', 'Reservation Rules', 'Platform settings (module 16).'),
-    ('/admin/reports-moderation', 'Reported Stores & Reviews', 'Moderation (module 16).'),
-    ('/admin/audit-log', 'Audit Log', 'Audit log viewer (module 16).'),
     ('/admin/security', 'Security', 'Security settings (module 1 follow-up).'),
   ])
     GoRoute(

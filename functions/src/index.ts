@@ -32,3 +32,6 @@ export * from "./reviews/editStoreReview";
 export * from "./reviews/respondToReview";
 export * from "./reviews/reportReview";
 export * from "./subscriptions/subscribeToPremium";
+export * from "./admin/verifyAccount";
+export * from "./admin/setAccountStatus";
+export * from "./admin/moderateReview";
