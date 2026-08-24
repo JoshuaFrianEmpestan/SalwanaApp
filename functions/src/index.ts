@@ -17,3 +17,4 @@ export const healthCheck = onCall(() => {
 });
 
 export * from "./auth/onUserCreated";
+export * from "./inventory/onProductStockChanged";

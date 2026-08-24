@@ -99,6 +99,13 @@ class ProductDetailScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 10),
                 OutlinedButton.icon(
+                  onPressed: () => context.push('/merchant/products/${product.id}/adjust-stock'),
+                  icon: const Icon(Icons.tune_rounded, size: 18),
+                  label: const Text('Adjust Stock'),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
                   onPressed: () => context.push('/merchant/inventory/movements/${product.id}'),
                   icon: const Icon(Icons.swap_vert_rounded, size: 18),
                   label: const Text('Stock Movements'),

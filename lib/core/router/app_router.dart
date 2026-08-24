@@ -20,6 +20,8 @@ import '../../features/merchant/presentation/inventory_list_screen.dart';
 import '../../features/merchant/presentation/merchant_profile_screen.dart';
 import '../../features/merchant/presentation/product_detail_screen.dart';
 import '../../features/merchant/presentation/product_form_screen.dart';
+import '../../features/merchant/presentation/stock_adjustment_screen.dart';
+import '../../features/merchant/presentation/stock_movement_history_screen.dart';
 import '../../features/merchant/presentation/store_profile_screen.dart';
 import '../../features/supplier/presentation/supplier_profile_screen.dart';
 import 'router_refresh_notifier.dart';
@@ -354,6 +356,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/merchant/products/:id/edit',
         builder: (context, state) => ProductFormScreen(productId: state.pathParameters['id']!),
       ),
+      GoRoute(
+        path: '/merchant/products/:id/adjust-stock',
+        builder: (context, state) => StockAdjustmentScreen(productId: state.pathParameters['id']!),
+      ),
 
       // ---------------- Cross-linked detail / secondary screens ----------------
       // Registered as top-level pushes so the bottom nav bar (from the
@@ -362,11 +368,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/merchant/store', builder: (context, state) => const StoreProfileScreen()),
       GoRoute(
         path: '/merchant/inventory/movements/:productId',
-        builder: (context, state) => const ComingSoonScreen(
-          title: 'Stock Movements',
-          moduleNote: 'Inventory movement history & stock adjustments (module 4).',
-          icon: Icons.swap_vert_rounded,
-        ),
+        builder: (context, state) => StockMovementHistoryScreen(productId: state.pathParameters['productId']!),
       ),
       ..._pendingDetailRoutes,
     ],
