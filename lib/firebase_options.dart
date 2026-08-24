@@ -30,29 +30,34 @@ class DefaultFirebaseOptions {
     }
   }
 
+  // These are well-formed but fake ("demo-" project) values — they satisfy
+  // the SDK's local format validation and work fine against the Firebase
+  // Local Emulator Suite (see USE_FIREBASE_EMULATOR in main.dart), but they
+  // are NOT a real project and will not work against production Firebase.
+  // `flutterfire configure` replaces every value below with your real ones.
   static const web = FirebaseOptions(
-    apiKey: 'REPLACE_WITH_FLUTTERFIRE_CONFIGURE',
-    appId: 'REPLACE_WITH_FLUTTERFIRE_CONFIGURE',
-    messagingSenderId: 'REPLACE_WITH_FLUTTERFIRE_CONFIGURE',
-    projectId: 'REPLACE_WITH_FLUTTERFIRE_CONFIGURE',
-    authDomain: 'REPLACE_WITH_FLUTTERFIRE_CONFIGURE',
-    storageBucket: 'REPLACE_WITH_FLUTTERFIRE_CONFIGURE',
+    apiKey: 'demo-api-key',
+    appId: '1:1234567890:web:abcdef1234567890abcdef',
+    messagingSenderId: '1234567890',
+    projectId: 'demo-salwana',
+    authDomain: 'demo-salwana.firebaseapp.com',
+    storageBucket: 'demo-salwana.appspot.com',
   );
 
   static const android = FirebaseOptions(
-    apiKey: 'REPLACE_WITH_FLUTTERFIRE_CONFIGURE',
-    appId: 'REPLACE_WITH_FLUTTERFIRE_CONFIGURE',
-    messagingSenderId: 'REPLACE_WITH_FLUTTERFIRE_CONFIGURE',
-    projectId: 'REPLACE_WITH_FLUTTERFIRE_CONFIGURE',
-    storageBucket: 'REPLACE_WITH_FLUTTERFIRE_CONFIGURE',
+    apiKey: 'demo-api-key',
+    appId: '1:1234567890:android:abcdef1234567890abcdef',
+    messagingSenderId: '1234567890',
+    projectId: 'demo-salwana',
+    storageBucket: 'demo-salwana.appspot.com',
   );
 
   static const ios = FirebaseOptions(
-    apiKey: 'REPLACE_WITH_FLUTTERFIRE_CONFIGURE',
-    appId: 'REPLACE_WITH_FLUTTERFIRE_CONFIGURE',
-    messagingSenderId: 'REPLACE_WITH_FLUTTERFIRE_CONFIGURE',
-    projectId: 'REPLACE_WITH_FLUTTERFIRE_CONFIGURE',
-    storageBucket: 'REPLACE_WITH_FLUTTERFIRE_CONFIGURE',
+    apiKey: 'demo-api-key',
+    appId: '1:1234567890:ios:abcdef1234567890abcdef',
+    messagingSenderId: '1234567890',
+    projectId: 'demo-salwana',
+    storageBucket: 'demo-salwana.appspot.com',
     iosBundleId: 'com.example.salwanaapp',
   );
 }

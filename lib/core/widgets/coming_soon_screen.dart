@@ -27,9 +27,9 @@ class ComingSoonScreen extends StatelessWidget {
                 child: Icon(icon, size: 40, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 20),
-              Text(
+              const Text(
                 'This screen is under construction',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
               ),
               const SizedBox(height: 8),
               Text(

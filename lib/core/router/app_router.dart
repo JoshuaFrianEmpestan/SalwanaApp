@@ -22,7 +22,7 @@ import '../../features/merchant/presentation/product_detail_screen.dart';
 import '../../features/merchant/presentation/product_form_screen.dart';
 import '../../features/merchant/presentation/store_profile_screen.dart';
 import '../../features/supplier/presentation/supplier_profile_screen.dart';
-import 'go_router_refresh_stream.dart';
+import 'router_refresh_notifier.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -45,20 +45,19 @@ String _roleHome(UserRole role) => switch (role) {
     };
 
 final routerProvider = Provider<GoRouter>((ref) {
-  // `.stream` exposes the same underlying broadcast Stream instance for the
-  // lifetime of these providers, so watching it (as opposed to watching the
-  // provider's value) does NOT rebuild this router on every emission — only
-  // GoRouterRefreshStream's listener fires, which just calls redirect again.
-  final authStream = ref.watch(authStateProvider.stream);
-  final appUserStream = ref.watch(appUserProvider.stream);
+  // A plain ChangeNotifier pinged via ref.listen — this deliberately avoids
+  // `ref.watch(provider)` (which would rebuild/recreate the whole GoRouter,
+  // resetting navigation) and the deprecated `.stream` modifier. Only
+  // `redirect` re-runs on each ping; the router instance itself is stable.
+  final refreshNotifier = RouterRefreshNotifier();
+  ref.onDispose(refreshNotifier.dispose);
+  ref.listen(authStateProvider, (_, __) => refreshNotifier.ping());
+  ref.listen(appUserProvider, (_, __) => refreshNotifier.ping());
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/splash',
-    refreshListenable: Listenable.merge([
-      GoRouterRefreshStream(authStream),
-      GoRouterRefreshStream(appUserStream),
-    ]),
+    refreshListenable: refreshNotifier,
     redirect: (context, state) {
       final loc = state.matchedLocation;
       final authAsync = ref.read(authStateProvider);

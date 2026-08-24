@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/app_user.dart';
+import '../constants/enums.dart';
 import '../theme/app_colors.dart';
 import 'status_badge.dart';
 

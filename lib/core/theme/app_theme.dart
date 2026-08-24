@@ -127,7 +127,6 @@ class AppTheme {
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusLg)),
       ),
-      colorSchemeSeed: AppColors.primary,
     );
   }
 }

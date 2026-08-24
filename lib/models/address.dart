@@ -34,9 +34,13 @@ class Address {
     required this.createdAt,
   });
 
-  String get fullAddress => [line1, if (line2 != null && line2!.isNotEmpty) line2, city, province, postalCode]
-      .where((e) => e.isNotEmpty)
-      .join(', ');
+  String get fullAddress => <String>[
+        line1,
+        if (line2 != null && line2!.isNotEmpty) line2!,
+        city,
+        province,
+        postalCode,
+      ].where((e) => e.isNotEmpty).join(', ');
 
   factory Address.fromMap(String id, Map<String, dynamic> map) => Address(
         id: id,
