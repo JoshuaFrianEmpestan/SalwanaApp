@@ -27,3 +27,7 @@ export * from "./orders/updateOrderStatus";
 export * from "./restocking/createRestockRequest";
 export * from "./restocking/respondToRestockRequest";
 export * from "./restocking/confirmRestockDelivery";
+export * from "./reviews/submitStoreReview";
+export * from "./reviews/editStoreReview";
+export * from "./reviews/respondToReview";
+export * from "./reviews/reportReview";

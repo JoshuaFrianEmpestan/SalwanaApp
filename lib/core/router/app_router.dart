@@ -22,6 +22,8 @@ import '../../features/consumer/presentation/consumer_home_screen.dart';
 import '../../features/consumer/presentation/digital_receipt_screen.dart';
 import '../../features/consumer/presentation/order_detail_screen.dart';
 import '../../features/consumer/presentation/payment_screen.dart';
+import '../../features/consumer/presentation/review_form_screen.dart';
+import '../../features/consumer/presentation/store_reviews_screen.dart';
 import '../../features/consumer/presentation/consumer_orders_tab_screen.dart';
 import '../../features/consumer/presentation/consumer_product_detail_screen.dart';
 import '../../features/consumer/presentation/consumer_profile_screen.dart';
@@ -322,6 +324,24 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => ConsumerProductDetailScreen(productId: state.pathParameters['id']!),
       ),
       GoRoute(
+        path: '/consumer/stores/:id/reviews',
+        builder: (context, state) => StoreReviewsScreen(storeId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/merchant/reviews',
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) {
+            final user = ref.watch(appUserProvider).valueOrNull;
+            if (user == null) return const Scaffold(body: SizedBox.shrink());
+            return StoreReviewsScreen(storeId: user.id);
+          },
+        ),
+      ),
+      GoRoute(
+        path: '/consumer/orders/:id/review',
+        builder: (context, state) => ReviewFormScreen(orderId: state.pathParameters['id']!),
+      ),
+      GoRoute(
         path: '/consumer/search',
         builder: (context, state) => ProductSearchScreen(initialCategory: state.uri.queryParameters['category']),
       ),
@@ -446,7 +466,6 @@ final _pendingDetailRoutes = <RouteBase>[
     ('/consumer/notification-settings', 'Notification Preferences', 'Notification center (module 12).'),
     ('/consumer/security', 'Security', 'Security settings (module 1 follow-up).'),
     ('/merchant/barcode-settings', 'Barcode / QR Settings', 'Optional barcode/QR module (module 11).'),
-    ('/merchant/reviews', 'Store Reviews', 'Store reviews & responses (module 11).'),
     ('/merchant/subscription', 'Subscription Plan', 'Subscription plans (module 14).'),
     ('/merchant/reports', 'Reports', 'Sales/inventory/financial reports (module 15).'),
     ('/merchant/notification-settings', 'Notification Preferences', 'Notification center (module 12).'),

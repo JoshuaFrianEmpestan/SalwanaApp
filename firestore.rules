@@ -74,9 +74,13 @@ service cloud.firestore {
     match /stores/{storeId} {
       allow read: if true; // public storefront browsing
       allow create: if isRole('merchant') && request.resource.data.merchantId == request.auth.uid;
+      // Rating fields are Cloud-Function-only (submitStoreReview /
+      // editStoreReview) so a merchant can never inflate their own rating.
       allow update: if (isRole('merchant') && resource.data.merchantId == request.auth.uid &&
                           request.resource.data.merchantId == resource.data.merchantId &&
-                          request.resource.data.verificationStatus == resource.data.verificationStatus) ||
+                          request.resource.data.verificationStatus == resource.data.verificationStatus &&
+                          request.resource.data.averageRating == resource.data.averageRating &&
+                          request.resource.data.ratingCount == resource.data.ratingCount) ||
                         isAdmin();
       allow delete: if false;
     }
@@ -229,12 +233,13 @@ service cloud.firestore {
     }
 
     // ---------------- store_reviews ----------------
+    // Created/edited only by submitStoreReview / editStoreReview /
+    // respondToReview / reportReview — enforces "completed order only",
+    // "one review per order", and the edit window server-side, and keeps
+    // the store's averageRating recomputation atomic (§10).
     match /store_reviews/{reviewId} {
       allow read: if true;
-      allow create: if isRole('consumer') && request.resource.data.consumerId == request.auth.uid;
-      allow update: if isSignedIn() &&
-        (resource.data.consumerId == request.auth.uid || isStoreOwner(resource.data.storeId) || isAdmin());
-      allow delete: if false;
+      allow write: if false;
     }
 
     // ---------------- notifications ----------------

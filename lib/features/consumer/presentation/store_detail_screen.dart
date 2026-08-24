@@ -92,6 +92,12 @@ class StoreDetailScreen extends ConsumerWidget {
                         _ContactRow(icon: Icons.call_outlined, text: store.phone),
                         _ContactRow(icon: Icons.mail_outline_rounded, text: store.email),
                         _ContactRow(icon: Icons.location_on_outlined, text: store.addressLine),
+                        const SizedBox(height: 14),
+                        OutlinedButton.icon(
+                          onPressed: () => context.push('/consumer/stores/$storeId/reviews'),
+                          icon: const Icon(Icons.star_outline_rounded, size: 18),
+                          label: Text(store.ratingCount > 0 ? 'See all ${store.ratingCount} reviews' : 'See reviews'),
+                        ),
                         const SizedBox(height: 20),
                         const Text('Products', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
                         const SizedBox(height: 10),

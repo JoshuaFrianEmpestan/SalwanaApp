@@ -132,6 +132,14 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                   const SizedBox(height: 10),
                   OutlinedButton(onPressed: () => context.push('/consumer/orders/${order.id}/receipt'), child: const Text('View Receipt')),
                 ],
+                if (isConsumer && order.status == OrderStatus.completed) ...[
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: () => context.push('/consumer/orders/${order.id}/review'),
+                    icon: const Icon(Icons.star_outline_rounded, size: 18),
+                    label: Text(order.reviewed ? 'Edit Your Review' : 'Write a Review'),
+                  ),
+                ],
                 const SizedBox(height: 10),
                 if (isMerchant) ..._merchantActions(order, repo),
                 if (isConsumer) ..._consumerActions(order),
