@@ -111,26 +111,28 @@ service cloud.firestore {
     }
 
     // ---------------- orders ----------------
+    // Created by processCheckout and (module 8) updated by an order-status
+    // Cloud Function — never written directly by a client, so prices,
+    // stock, and status transitions are always server-validated (§20).
     match /orders/{orderId} {
       allow read: if isSignedIn() &&
         (resource.data.consumerId == request.auth.uid || resource.data.merchantId == request.auth.uid || isAdmin());
-      allow create: if false; // created transactionally by checkout Cloud Function
-      // Merchant may only move status forward through valid actions; kept
-      // permissive here and validated more strictly inside Cloud Functions
-      // that front the status-change buttons in the UI.
-      allow update: if isSignedIn() &&
-        (resource.data.merchantId == request.auth.uid || isAdmin());
-      allow delete: if false;
+      allow write: if false;
     }
 
     // ---------------- reservations ----------------
+    // Created by createReservation and mutated only by
+    // updateReservationStatus (approve/reject/prepare/.../cancel) — same
+    // reasoning as orders above.
     match /reservations/{reservationId} {
       allow read: if isSignedIn() &&
         (resource.data.consumerId == request.auth.uid || resource.data.merchantId == request.auth.uid || isAdmin());
-      allow create: if false; // created transactionally by reservation Cloud Function
-      allow update: if isSignedIn() &&
-        (resource.data.merchantId == request.auth.uid || resource.data.consumerId == request.auth.uid || isAdmin());
-      allow delete: if false;
+      allow write: if false;
+    }
+
+    // ---------------- checkout_attempts (idempotency ledger, Functions-only) ----------------
+    match /checkout_attempts/{idempotencyKey} {
+      allow read, write: if false;
     }
 
     // ---------------- payments / digital_receipts (Functions-only) ----------------
