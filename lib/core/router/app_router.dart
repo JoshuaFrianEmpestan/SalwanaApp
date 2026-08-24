@@ -15,7 +15,12 @@ import '../../features/auth/presentation/pending_verification_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/auth/presentation/verify_email_screen.dart';
+import '../../features/consumer/presentation/consumer_home_screen.dart';
+import '../../features/consumer/presentation/consumer_product_detail_screen.dart';
 import '../../features/consumer/presentation/consumer_profile_screen.dart';
+import '../../features/consumer/presentation/product_search_screen.dart';
+import '../../features/consumer/presentation/store_browse_screen.dart';
+import '../../features/consumer/presentation/store_detail_screen.dart';
 import '../../features/merchant/presentation/inventory_list_screen.dart';
 import '../../features/merchant/presentation/merchant_profile_screen.dart';
 import '../../features/merchant/presentation/product_detail_screen.dart';
@@ -131,24 +136,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
         branches: [
           StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/consumer/home',
-              builder: (context, state) => const ComingSoonScreen(
-                title: 'Home',
-                moduleNote: 'Consumer catalog & search (module 5) builds this next.',
-                icon: Icons.home_outlined,
-              ),
-            ),
+            GoRoute(path: '/consumer/home', builder: (context, state) => const ConsumerHomeScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/consumer/stores',
-              builder: (context, state) => const ComingSoonScreen(
-                title: 'Stores',
-                moduleNote: 'Browse merchant stores (module 5).',
-                icon: Icons.storefront_outlined,
-              ),
-            ),
+            GoRoute(path: '/consumer/stores', builder: (context, state) => const StoreBrowseScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
@@ -344,6 +335,20 @@ final routerProvider = Provider<GoRouter>((ref) {
             GoRoute(path: '/admin/settings', builder: (context, state) => const AdminSettingsScreen()),
           ]),
         ],
+      ),
+
+      // ---------------- Consumer catalog / search ----------------
+      GoRoute(
+        path: '/consumer/stores/:id',
+        builder: (context, state) => StoreDetailScreen(storeId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/consumer/products/:id',
+        builder: (context, state) => ConsumerProductDetailScreen(productId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/consumer/search',
+        builder: (context, state) => ProductSearchScreen(initialCategory: state.uri.queryParameters['category']),
       ),
 
       // ---------------- Merchant product detail / form ----------------
