@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/order_list_tile.dart';
 import '../../../core/widgets/reservation_list_tile.dart';
 import '../../../core/widgets/state_views.dart';
+import '../data/order_repository.dart';
 import '../data/reservation_repository.dart';
 
-/// Orders tab (consumer). Reservations are fully wired (module 6); the
-/// Orders sub-tab becomes real once order management (module 8) lands —
-/// checkout already creates the order records, this just doesn't have a
-/// dedicated timeline view for them yet.
+/// Orders tab (consumer) — Reservations (module 6) and Orders (module 8)
+/// side by side, since a consumer manages both the same way day to day.
 class ConsumerOrdersTabScreen extends StatelessWidget {
   const ConsumerOrdersTabScreen({super.key});
 
@@ -24,12 +24,45 @@ class ConsumerOrdersTabScreen extends StatelessWidget {
             labelColor: AppColors.primary,
             unselectedLabelColor: AppColors.textSecondary,
             indicatorColor: AppColors.primary,
-            tabs: [Tab(text: 'Reservations'), Tab(text: 'Orders')],
+            tabs: [Tab(text: 'Orders'), Tab(text: 'Reservations')],
           ),
         ),
         body: const TabBarView(
-          children: [_ConsumerReservationsList(), _OrdersComingSoon()],
+          children: [_ConsumerOrdersList(), _ConsumerReservationsList()],
         ),
+      ),
+    );
+  }
+}
+
+class _ConsumerOrdersList extends ConsumerWidget {
+  const _ConsumerOrdersList();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ordersAsync = ref.watch(consumerOrdersProvider);
+    return SafeArea(
+      child: ordersAsync.when(
+        loading: () => const LoadingListView(),
+        error: (e, _) => ErrorStateView(onRetry: () => ref.invalidate(consumerOrdersProvider)),
+        data: (orders) {
+          if (orders.isEmpty) {
+            return const EmptyStateView(
+              icon: Icons.receipt_long_outlined,
+              title: 'No orders yet',
+              message: 'Orders you place at checkout will show up here.',
+            );
+          }
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: orders.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            itemBuilder: (context, i) => OrderListTile(
+              order: orders[i],
+              onTap: () => context.push('/consumer/order-details/${orders[i].id}'),
+            ),
+          );
+        },
       ),
     );
   }
@@ -64,19 +97,6 @@ class _ConsumerReservationsList extends ConsumerWidget {
           );
         },
       ),
-    );
-  }
-}
-
-class _OrdersComingSoon extends StatelessWidget {
-  const _OrdersComingSoon();
-
-  @override
-  Widget build(BuildContext context) {
-    return const EmptyStateView(
-      icon: Icons.receipt_long_outlined,
-      title: 'Order tracking coming soon',
-      message: 'Checkout already creates your orders — a dedicated tracking timeline arrives with order management (module 8).',
     );
   }
 }

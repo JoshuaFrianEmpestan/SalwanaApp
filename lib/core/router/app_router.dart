@@ -20,6 +20,7 @@ import '../../features/consumer/presentation/checkout_result_screen.dart';
 import '../../features/consumer/presentation/checkout_screen.dart';
 import '../../features/consumer/presentation/consumer_home_screen.dart';
 import '../../features/consumer/presentation/digital_receipt_screen.dart';
+import '../../features/consumer/presentation/order_detail_screen.dart';
 import '../../features/consumer/presentation/payment_screen.dart';
 import '../../features/consumer/presentation/consumer_orders_tab_screen.dart';
 import '../../features/consumer/presentation/consumer_product_detail_screen.dart';
@@ -350,6 +351,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/consumer/orders/:id/receipt',
         builder: (context, state) => DigitalReceiptScreen(orderId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/consumer/order-details/:id',
+        builder: (context, state) => OrderDetailScreen(orderId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/merchant/order-details/:id',
+        builder: (context, state) => OrderDetailScreen(orderId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/consumer/products/:id/reserve',

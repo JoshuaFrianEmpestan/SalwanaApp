@@ -23,3 +23,4 @@ export * from "./reservations/createReservation";
 export * from "./reservations/updateReservationStatus";
 export * from "./reservations/expireReservations";
 export * from "./payments/processPayment";
+export * from "./orders/updateOrderStatus";
