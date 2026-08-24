@@ -50,6 +50,7 @@ class ConsumerProfileScreen extends ConsumerWidget {
                 ProfileMenuTile(icon: Icons.favorite_border_rounded, label: 'Followed Products', onTap: () => context.push('/consumer/followed')),
                 const SizedBox(height: 12),
                 const Text('Preferences', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
+                ProfileMenuTile(icon: Icons.notifications_active_outlined, label: 'Notifications', onTap: () => context.push('/consumer/notifications')),
                 ProfileMenuTile(icon: Icons.notifications_outlined, label: 'Notification Preferences', onTap: () => context.push('/consumer/notification-settings')),
                 ProfileMenuTile(icon: Icons.lock_outline_rounded, label: 'Security', onTap: () => context.push('/consumer/security')),
                 const SizedBox(height: 12),

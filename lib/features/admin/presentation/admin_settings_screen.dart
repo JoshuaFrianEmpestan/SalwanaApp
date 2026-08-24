@@ -51,6 +51,7 @@ class AdminSettingsScreen extends ConsumerWidget {
                 ProfileMenuTile(icon: Icons.fact_check_outlined, label: 'Audit Log', onTap: () => context.push('/admin/audit-log')),
                 const SizedBox(height: 12),
                 const Text('Account', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
+                ProfileMenuTile(icon: Icons.notifications_active_outlined, label: 'Notifications', onTap: () => context.push('/admin/notifications')),
                 ProfileMenuTile(icon: Icons.lock_outline_rounded, label: 'Security', onTap: () => context.push('/admin/security')),
                 const SizedBox(height: 12),
                 ProfileMenuTile(

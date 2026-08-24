@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/consumer_product_card.dart';
+import '../../../core/widgets/notification_bell.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../core/widgets/store_card.dart';
 import '../data/catalog_repository.dart';
@@ -39,8 +40,16 @@ class _ConsumerHomeScreenState extends ConsumerState<ConsumerHomeScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             children: [
-              Text('Hi, ${user?.fullName.split(' ').first ?? 'there'} 👋',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text('Hi, ${user?.fullName.split(' ').first ?? 'there'} 👋',
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                  ),
+                  const NotificationBell(route: '/consumer/notifications'),
+                ],
+              ),
               const SizedBox(height: 2),
               const Text('What are you looking for today?', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
               const SizedBox(height: 16),

@@ -24,6 +24,7 @@ import '../../features/consumer/presentation/order_detail_screen.dart';
 import '../../features/consumer/presentation/payment_screen.dart';
 import '../../features/consumer/presentation/review_form_screen.dart';
 import '../../features/consumer/presentation/store_reviews_screen.dart';
+import '../../features/shared/presentation/notification_center_screen.dart';
 import '../../features/consumer/presentation/consumer_orders_tab_screen.dart';
 import '../../features/consumer/presentation/consumer_product_detail_screen.dart';
 import '../../features/consumer/presentation/consumer_profile_screen.dart';
@@ -345,6 +346,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/consumer/search',
         builder: (context, state) => ProductSearchScreen(initialCategory: state.uri.queryParameters['category']),
       ),
+      GoRoute(path: '/consumer/notifications', builder: (context, state) => const NotificationCenterScreen()),
+      GoRoute(path: '/merchant/notifications', builder: (context, state) => const NotificationCenterScreen()),
+      GoRoute(path: '/supplier/notifications', builder: (context, state) => const NotificationCenterScreen()),
+      GoRoute(path: '/admin/notifications', builder: (context, state) => const NotificationCenterScreen()),
       GoRoute(path: '/consumer/checkout', builder: (context, state) => const CheckoutScreen()),
       GoRoute(
         path: '/consumer/checkout-result',
