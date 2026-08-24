@@ -53,12 +53,14 @@ export const processPayment = onCall<ProcessPaymentRequest>(async (request) => {
     const paymentRef = db.collection("payments").doc(orderId);
 
     if (simulateOutcome === "success") {
+      let cogs = 0;
       productSnaps.forEach((snap, idx) => {
         const qty = items[idx].quantity;
         if (!snap.exists) return;
         const product = snap.data()!;
         const current = product.currentStock ?? 0;
         const reserved = product.reservedStock ?? 0;
+        cogs += (product.costPrice ?? 0) * qty;
 
         if (wasHeld) {
           const newReserved = Math.max(0, reserved - qty);
@@ -113,7 +115,7 @@ export const processPayment = onCall<ProcessPaymentRequest>(async (request) => {
       });
 
       writeReceipt(tx, { orderId, order, store, orderStatus: "confirmed", paymentStatus: "successful" });
-      writeTransaction(tx, { orderId, order });
+      writeTransaction(tx, { orderId, order, cogs: Math.round(cogs * 100) / 100 });
     } else {
       if (wasHeld) {
         productSnaps.forEach((snap, idx) => {

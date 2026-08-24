@@ -86,6 +86,7 @@ export const processCheckout = onCall<CheckoutRequest>(async (request) => {
       const productSnaps = await Promise.all(productRefs.map((r) => tx.get(r)));
 
       let subtotal = 0;
+      let cogs = 0;
       const orderItems: Record<string, unknown>[] = [];
       const stockUpdates: { ref: FirebaseFirestore.DocumentReference; before: number; after: number; reservedBefore: number; reservedAfter: number }[] = [];
 
@@ -106,6 +107,7 @@ export const processCheckout = onCall<CheckoutRequest>(async (request) => {
 
         const unitPrice = product.sellingPrice ?? 0;
         subtotal += unitPrice * requested;
+        cogs += (product.costPrice ?? 0) * requested;
         orderItems.push({
           productId: snap.id,
           productName: product.name,
@@ -202,7 +204,7 @@ export const processCheckout = onCall<CheckoutRequest>(async (request) => {
 
       if (isCod) {
         writeReceipt(tx, { orderId: orderRef.id, order: orderData, store, orderStatus: "confirmed", paymentStatus: "successful" });
-        writeTransaction(tx, { orderId: orderRef.id, order: orderData });
+        writeTransaction(tx, { orderId: orderRef.id, order: orderData, cogs: round2(cogs) });
       }
 
       return orderRef.id;

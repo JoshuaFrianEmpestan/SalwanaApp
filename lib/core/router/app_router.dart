@@ -30,7 +30,17 @@ import '../../features/consumer/presentation/reservation_detail_screen.dart';
 import '../../features/consumer/presentation/reserve_product_screen.dart';
 import '../../features/consumer/presentation/store_browse_screen.dart';
 import '../../features/consumer/presentation/store_detail_screen.dart';
+import '../../features/consumer/presentation/consumer_credit_screen.dart';
+import '../../features/merchant/presentation/capital_screen.dart';
 import '../../features/merchant/presentation/confirm_delivery_screen.dart';
+import '../../features/merchant/presentation/credit_accounts_screen.dart';
+import '../../features/merchant/presentation/credit_detail_screen.dart';
+import '../../features/merchant/presentation/credit_form_screen.dart';
+import '../../features/merchant/presentation/expenses_screen.dart';
+import '../../features/merchant/presentation/finance_home_screen.dart';
+import '../../features/merchant/presentation/loan_detail_screen.dart';
+import '../../features/merchant/presentation/loan_form_screen.dart';
+import '../../features/merchant/presentation/loans_screen.dart';
 import '../../features/merchant/presentation/merchant_orders_tab_screen.dart';
 import '../../features/merchant/presentation/restock_request_detail_screen.dart';
 import '../../features/merchant/presentation/restock_request_form_screen.dart';
@@ -204,14 +214,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             GoRoute(path: '/merchant/orders', builder: (context, state) => const MerchantOrdersTabScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/merchant/finance',
-              builder: (context, state) => const ComingSoonScreen(
-                title: 'Finance',
-                moduleNote: 'Merchant finance & loan tracking (module 10).',
-                icon: Icons.account_balance_wallet_outlined,
-              ),
-            ),
+            GoRoute(path: '/merchant/finance', builder: (context, state) => const FinanceHomeScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/merchant/profile', builder: (context, state) => const MerchantProfileScreen()),
@@ -356,6 +359,27 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => ReservationDetailScreen(reservationId: state.pathParameters['id']!),
       ),
 
+      // ---------------- Merchant finance & loan tracking (§7, §10) ----------------
+      GoRoute(path: '/merchant/finance/expenses', builder: (context, state) => const ExpensesScreen()),
+      GoRoute(path: '/merchant/finance/capital', builder: (context, state) => const CapitalScreen()),
+      GoRoute(path: '/merchant/finance/loans', builder: (context, state) => const LoansScreen()),
+      GoRoute(path: '/merchant/finance/loans/new', builder: (context, state) => const LoanFormScreen()),
+      GoRoute(
+        path: '/merchant/finance/loans/:id',
+        builder: (context, state) => LoanDetailScreen(loanId: state.pathParameters['id']!),
+      ),
+      GoRoute(path: '/merchant/finance/credit', builder: (context, state) => const CreditAccountsScreen()),
+      GoRoute(path: '/merchant/finance/credit/new', builder: (context, state) => const CreditFormScreen()),
+      GoRoute(
+        path: '/merchant/finance/credit/:id',
+        builder: (context, state) => CreditDetailScreen(accountId: state.pathParameters['id']!),
+      ),
+      GoRoute(path: '/consumer/credit', builder: (context, state) => const ConsumerCreditScreen()),
+      GoRoute(
+        path: '/consumer/credit/:id',
+        builder: (context, state) => CreditDetailScreen(accountId: state.pathParameters['id']!),
+      ),
+
       // ---------------- Supplier restocking (§9) ----------------
       GoRoute(path: '/supplier/company', builder: (context, state) => const CompanyProfileScreen()),
       GoRoute(path: '/supplier/products/new', builder: (context, state) => const SupplierProductFormScreen()),
@@ -418,7 +442,6 @@ final _pendingDetailRoutes = <RouteBase>[
   for (final entry in <(String, String, String)>[
     ('/consumer/profile/edit', 'Edit Profile', 'Profile editing (module 1 follow-up).'),
     ('/consumer/addresses', 'Saved Addresses', 'Address book (module 6).'),
-    ('/consumer/credit', 'Store Credit', 'Consumer loan / store credit tracking (module 8).'),
     ('/consumer/followed', 'Followed Products', 'Back-in-stock following (module 9).'),
     ('/consumer/notification-settings', 'Notification Preferences', 'Notification center (module 12).'),
     ('/consumer/security', 'Security', 'Security settings (module 1 follow-up).'),

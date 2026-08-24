@@ -63,16 +63,36 @@ export const updateOrderStatus = onCall<UpdateOrderStatusRequest>(async (request
       failedPrecondition(`Cannot ${action} an order that is ${order.status}.`);
     }
 
+    // Read up front (transactions require all reads before any writes) —
+    // used later to reverse the transaction record on refund.
+    const refundTransactionRef = db.collection("transactions").doc(orderId);
+    const refundTransactionSnap = action === "refund" ? await tx.get(refundTransactionRef) : null;
+
+    // Firestore transactions require every read before any write, so both
+    // cancel branches below read all of an order's product docs up front
+    // (Promise.all) and only start writing once every read has resolved.
     if (action === "cancel" && STOCK_ALREADY_SOLD_STATUSES.has(order.status)) {
+      // A transaction record already exists for this order (COD confirms
+      // immediately, online orders settle on payment) — reverse it so
+      // finance summaries (§7, §10) never count a cancelled sale as revenue.
+      const transactionRef = db.collection("transactions").doc(orderId);
+      const transactionSnap = await tx.get(transactionRef);
+
       const items = (order.items ?? []) as { productId: string; quantity: number }[];
-      for (const item of items) {
-        const productRef = db.collection("products").doc(item.productId);
-        const productSnap = await tx.get(productRef);
-        if (!productSnap.exists) continue;
+      const productRefs = items.map((i) => db.collection("products").doc(i.productId));
+      const productSnaps = await Promise.all(productRefs.map((r) => tx.get(r)));
+
+      if (transactionSnap.exists) {
+        tx.update(transactionRef, { reversed: true, reversedAt: FieldValue.serverTimestamp() });
+      }
+
+      productSnaps.forEach((productSnap, idx) => {
+        if (!productSnap.exists) return;
+        const item = items[idx];
         const product = productSnap.data()!;
         const current = product.currentStock ?? 0;
         const newCurrent = current + item.quantity;
-        tx.update(productRef, { currentStock: newCurrent, updatedAt: FieldValue.serverTimestamp() });
+        tx.update(productRefs[idx], { currentStock: newCurrent, updatedAt: FieldValue.serverTimestamp() });
 
         const movementRef = db.collection("inventory_movements").doc();
         tx.set(movementRef, {
@@ -90,17 +110,19 @@ export const updateOrderStatus = onCall<UpdateOrderStatusRequest>(async (request
           performedByName: order.consumerName ?? "",
           createdAt: FieldValue.serverTimestamp(),
         });
-      }
+      });
     } else if (action === "cancel" && order.status === "pendingPayment") {
       const items = (order.items ?? []) as { productId: string; quantity: number }[];
-      for (const item of items) {
-        const productRef = db.collection("products").doc(item.productId);
-        const productSnap = await tx.get(productRef);
-        if (!productSnap.exists) continue;
+      const productRefs = items.map((i) => db.collection("products").doc(i.productId));
+      const productSnaps = await Promise.all(productRefs.map((r) => tx.get(r)));
+
+      productSnaps.forEach((productSnap, idx) => {
+        if (!productSnap.exists) return;
+        const item = items[idx];
         const product = productSnap.data()!;
         const reserved = product.reservedStock ?? 0;
         const newReserved = Math.max(0, reserved - item.quantity);
-        tx.update(productRef, { reservedStock: newReserved, updatedAt: FieldValue.serverTimestamp() });
+        tx.update(productRefs[idx], { reservedStock: newReserved, updatedAt: FieldValue.serverTimestamp() });
 
         const movementRef = db.collection("inventory_movements").doc();
         tx.set(movementRef, {
@@ -118,7 +140,7 @@ export const updateOrderStatus = onCall<UpdateOrderStatusRequest>(async (request
           performedByName: order.consumerName ?? "",
           createdAt: FieldValue.serverTimestamp(),
         });
-      }
+      });
     }
 
     const newStatus = NEXT_STATUS[action];
@@ -131,6 +153,9 @@ export const updateOrderStatus = onCall<UpdateOrderStatusRequest>(async (request
     if (action === "refund") {
       const paymentRef = db.collection("payments").doc(orderId);
       tx.update(paymentRef, { status: "refunded", updatedAt: FieldValue.serverTimestamp() });
+      if (refundTransactionSnap?.exists) {
+        tx.update(refundTransactionRef, { reversed: true, reversedAt: FieldValue.serverTimestamp() });
+      }
     }
   });
 

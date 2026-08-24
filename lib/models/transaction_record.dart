@@ -14,6 +14,8 @@ class TransactionRecord {
   final String consumerId;
   final double amount;
   final double subtotal;
+  final double cogs;
+  final bool reversed;
   final PaymentMethod paymentMethod;
   final DateTime createdAt;
 
@@ -25,6 +27,8 @@ class TransactionRecord {
     required this.consumerId,
     required this.amount,
     required this.subtotal,
+    required this.cogs,
+    this.reversed = false,
     required this.paymentMethod,
     required this.createdAt,
   });
@@ -37,6 +41,8 @@ class TransactionRecord {
         consumerId: map['consumerId'] ?? '',
         amount: asDouble(map['amount']),
         subtotal: asDouble(map['subtotal']),
+        cogs: asDouble(map['cogs']),
+        reversed: map['reversed'] ?? false,
         paymentMethod: PaymentMethodX.fromName(map['paymentMethod'] ?? 'simulated'),
         createdAt: tsToDateOrNow(map['createdAt']),
       );
