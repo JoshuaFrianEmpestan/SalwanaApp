@@ -16,7 +16,11 @@ import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/auth/presentation/verify_email_screen.dart';
 import '../../features/consumer/presentation/consumer_profile_screen.dart';
+import '../../features/merchant/presentation/inventory_list_screen.dart';
 import '../../features/merchant/presentation/merchant_profile_screen.dart';
+import '../../features/merchant/presentation/product_detail_screen.dart';
+import '../../features/merchant/presentation/product_form_screen.dart';
+import '../../features/merchant/presentation/store_profile_screen.dart';
 import '../../features/supplier/presentation/supplier_profile_screen.dart';
 import 'go_router_refresh_stream.dart';
 
@@ -195,14 +199,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/merchant/inventory',
-              builder: (context, state) => const ComingSoonScreen(
-                title: 'Inventory',
-                moduleNote: 'Inventory & audit logs (module 4).',
-                icon: Icons.inventory_2_outlined,
-              ),
-            ),
+            GoRoute(path: '/merchant/inventory', builder: (context, state) => const InventoryListScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
@@ -348,10 +345,30 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
+      // ---------------- Merchant product detail / form ----------------
+      GoRoute(path: '/merchant/products/new', builder: (context, state) => const ProductFormScreen()),
+      GoRoute(
+        path: '/merchant/products/:id',
+        builder: (context, state) => ProductDetailScreen(productId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/merchant/products/:id/edit',
+        builder: (context, state) => ProductFormScreen(productId: state.pathParameters['id']!),
+      ),
+
       // ---------------- Cross-linked detail / secondary screens ----------------
       // Registered as top-level pushes so the bottom nav bar (from the
       // shell that pushed them) stays visible underneath. Filled in module
       // by module; each currently honestly marks itself as pending.
+      GoRoute(path: '/merchant/store', builder: (context, state) => const StoreProfileScreen()),
+      GoRoute(
+        path: '/merchant/inventory/movements/:productId',
+        builder: (context, state) => const ComingSoonScreen(
+          title: 'Stock Movements',
+          moduleNote: 'Inventory movement history & stock adjustments (module 4).',
+          icon: Icons.swap_vert_rounded,
+        ),
+      ),
       ..._pendingDetailRoutes,
     ],
   );
@@ -365,7 +382,6 @@ final _pendingDetailRoutes = <RouteBase>[
     ('/consumer/followed', 'Followed Products', 'Back-in-stock following (module 9).'),
     ('/consumer/notification-settings', 'Notification Preferences', 'Notification center (module 12).'),
     ('/consumer/security', 'Security', 'Security settings (module 1 follow-up).'),
-    ('/merchant/store', 'Store Profile', 'Store profile management (module 3).'),
     ('/merchant/suppliers', 'Suppliers', 'Supplier directory (module 9).'),
     ('/merchant/barcode-settings', 'Barcode / QR Settings', 'Optional barcode/QR module (module 11).'),
     ('/merchant/reviews', 'Store Reviews', 'Store reviews & responses (module 11).'),
