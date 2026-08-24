@@ -16,8 +16,11 @@ import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/auth/presentation/verify_email_screen.dart';
 import '../../features/consumer/presentation/cart_screen.dart';
+import '../../features/consumer/presentation/checkout_result_screen.dart';
 import '../../features/consumer/presentation/checkout_screen.dart';
 import '../../features/consumer/presentation/consumer_home_screen.dart';
+import '../../features/consumer/presentation/digital_receipt_screen.dart';
+import '../../features/consumer/presentation/payment_screen.dart';
 import '../../features/consumer/presentation/consumer_orders_tab_screen.dart';
 import '../../features/consumer/presentation/consumer_product_detail_screen.dart';
 import '../../features/consumer/presentation/consumer_profile_screen.dart';
@@ -336,6 +339,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => ProductSearchScreen(initialCategory: state.uri.queryParameters['category']),
       ),
       GoRoute(path: '/consumer/checkout', builder: (context, state) => const CheckoutScreen()),
+      GoRoute(
+        path: '/consumer/checkout-result',
+        builder: (context, state) => CheckoutResultScreen(orderIds: (state.extra as List?)?.cast<String>() ?? const []),
+      ),
+      GoRoute(
+        path: '/consumer/orders/:id/pay',
+        builder: (context, state) => PaymentScreen(orderId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/consumer/orders/:id/receipt',
+        builder: (context, state) => DigitalReceiptScreen(orderId: state.pathParameters['id']!),
+      ),
       GoRoute(
         path: '/consumer/products/:id/reserve',
         builder: (context, state) => ReserveProductScreen(productId: state.pathParameters['id']!),

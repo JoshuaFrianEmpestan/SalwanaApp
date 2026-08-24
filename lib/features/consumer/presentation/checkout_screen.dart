@@ -65,8 +65,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
       final orderIds = await ref.read(checkoutRepositoryProvider).checkout(groups);
       if (mounted) {
-        showAppSnackBar(context, orderIds.length == 1 ? 'Order placed!' : '${orderIds.length} orders placed!');
-        context.go('/consumer/orders');
+        context.pushReplacement('/consumer/checkout-result', extra: orderIds);
       }
     } on CheckoutException catch (e) {
       if (mounted) showAppSnackBar(context, e.message, isError: true);

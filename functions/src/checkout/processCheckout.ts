@@ -3,6 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { db } from "../lib/admin";
 import { badRequest, requireAuth } from "../lib/errors";
 import { notifyUser } from "../lib/notify";
+import { writeReceipt, writeTransaction } from "../lib/receipts";
 import { getAppSettings } from "../lib/settings";
 
 interface CheckoutItemInput {
@@ -156,7 +157,7 @@ export const processCheckout = onCall<CheckoutRequest>(async (request) => {
         });
       });
 
-      tx.set(orderRef, {
+      const orderData = {
         checkoutGroupId,
         consumerId: uid,
         consumerName: consumer.fullName ?? "",
@@ -177,9 +178,32 @@ export const processCheckout = onCall<CheckoutRequest>(async (request) => {
         notes: group.notes ?? null,
         cancellationReason: null,
         reviewed: false,
+      };
+      tx.set(orderRef, { ...orderData, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
+
+      // One payment record per order (§6, §15) — COD is considered settled
+      // the moment the order is placed; online methods stay `pending` until
+      // processPayment (module 7) runs.
+      const paymentRef = db.collection("payments").doc(orderRef.id);
+      tx.set(paymentRef, {
+        orderId: orderRef.id,
+        checkoutGroupId,
+        consumerId: uid,
+        merchantId: store.merchantId,
+        method: group.paymentMethod,
+        status: isCod ? "successful" : "pending",
+        amount: total,
+        idempotencyKey: `${idempotencyKey}:${orderRef.id}`,
+        providerReference: isCod ? null : null,
+        failureReason: null,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       });
+
+      if (isCod) {
+        writeReceipt(tx, { orderId: orderRef.id, order: orderData, store, orderStatus: "confirmed", paymentStatus: "successful" });
+        writeTransaction(tx, { orderId: orderRef.id, order: orderData });
+      }
 
       return orderRef.id;
     });
