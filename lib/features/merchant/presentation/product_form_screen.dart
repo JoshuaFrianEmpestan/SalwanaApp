@@ -12,6 +12,7 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../models/product.dart';
 import '../data/product_repository.dart';
+import '../data/subscription_repository.dart';
 
 /// Add/Edit product form. Stock quantities are only settable at creation
 /// (initial stock) — after that, changes must go through an audited
@@ -83,6 +84,23 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   Future<void> _submit(String merchantId, String merchantName, Product? existing) async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Plan-enforced product limit (§14) — only checked on create, so a
+    // merchant who exceeds their limit after a downgrade can still edit
+    // existing products, just not add new ones.
+    if (existing == null) {
+      final plan = ref.read(effectivePlanProvider);
+      final currentCount = ref.read(storeProductsProvider(merchantId)).valueOrNull?.length ?? 0;
+      if (plan != null && plan.productLimit >= 0 && currentCount >= plan.productLimit) {
+        showAppSnackBar(
+          context,
+          'Your ${plan.name} plan allows up to ${plan.productLimit} products. Upgrade to add more.',
+          isError: true,
+        );
+        return;
+      }
+    }
+
     setState(() => _saving = true);
     try {
       final repo = ref.read(productRepositoryProvider);

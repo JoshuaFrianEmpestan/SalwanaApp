@@ -31,3 +31,4 @@ export * from "./reviews/submitStoreReview";
 export * from "./reviews/editStoreReview";
 export * from "./reviews/respondToReview";
 export * from "./reviews/reportReview";
+export * from "./subscriptions/subscribeToPremium";

@@ -8,6 +8,7 @@ import '../../core/widgets/coming_soon_screen.dart';
 import '../../core/widgets/role_scaffold.dart';
 import '../../features/admin/presentation/admin_dashboard_screen.dart';
 import '../../features/admin/presentation/admin_settings_screen.dart';
+import '../../features/admin/presentation/admin_subscription_plans_screen.dart';
 import '../../features/auth/presentation/account_blocked_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
@@ -49,6 +50,7 @@ import '../../features/merchant/presentation/merchant_dashboard_screen.dart';
 import '../../features/merchant/presentation/merchant_orders_tab_screen.dart';
 import '../../features/merchant/presentation/restock_request_detail_screen.dart';
 import '../../features/merchant/presentation/restock_request_form_screen.dart';
+import '../../features/merchant/presentation/subscription_screen.dart';
 import '../../features/merchant/presentation/supplier_detail_screen.dart';
 import '../../features/merchant/presentation/supplier_directory_screen.dart';
 import '../../features/supplier/presentation/company_profile_screen.dart';
@@ -387,6 +389,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/merchant/finance/credit/:id',
         builder: (context, state) => CreditDetailScreen(accountId: state.pathParameters['id']!),
       ),
+      GoRoute(path: '/merchant/subscription', builder: (context, state) => const SubscriptionScreen()),
+      GoRoute(path: '/admin/subscription-plans', builder: (context, state) => const AdminSubscriptionPlansScreen()),
       GoRoute(path: '/consumer/credit', builder: (context, state) => const ConsumerCreditScreen()),
       GoRoute(
         path: '/consumer/credit/:id',
@@ -459,14 +463,12 @@ final _pendingDetailRoutes = <RouteBase>[
     ('/consumer/notification-settings', 'Notification Preferences', 'Notification center (module 12).'),
     ('/consumer/security', 'Security', 'Security settings (module 1 follow-up).'),
     ('/merchant/barcode-settings', 'Barcode / QR Settings', 'Optional barcode/QR module (module 11).'),
-    ('/merchant/subscription', 'Subscription Plan', 'Subscription plans (module 14).'),
     ('/merchant/reports', 'Reports', 'Sales/inventory/financial reports (module 15).'),
     ('/merchant/notification-settings', 'Notification Preferences', 'Notification center (module 12).'),
     ('/merchant/security', 'Security', 'Security settings (module 1 follow-up).'),
     ('/supplier/notification-settings', 'Notification Settings', 'Notification center (module 12).'),
     ('/supplier/security', 'Security', 'Security settings (module 1 follow-up).'),
     ('/admin/categories', 'Product Categories', 'Category management (module 16).'),
-    ('/admin/subscription-plans', 'Subscription Plans', 'Plan configuration (module 14).'),
     ('/admin/payment-settings', 'Payment Options & Fees', 'Platform settings (module 16).'),
     ('/admin/reservation-rules', 'Reservation Rules', 'Platform settings (module 16).'),
     ('/admin/reports-moderation', 'Reported Stores & Reviews', 'Moderation (module 16).'),
