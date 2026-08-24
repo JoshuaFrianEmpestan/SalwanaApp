@@ -44,8 +44,12 @@ app.*.map.json
 
 # iOS related
 **/ios/Flutter/.last_build_id
+**/ios/Flutter/ephemeral/
 **/ios/Pods/
 **/ios/.symlinks/
+
+# Android related — machine-specific local SDK paths
+android/local.properties
 
 # Firebase
 firebase-debug.log
