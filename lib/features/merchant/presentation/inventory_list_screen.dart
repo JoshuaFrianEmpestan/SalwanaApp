@@ -4,10 +4,13 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/enums.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/product_list_tile.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../models/product.dart';
 import '../data/product_repository.dart';
+import '../data/store_repository.dart';
+import 'barcode_scanner_screen.dart';
 
 class InventoryListScreen extends ConsumerStatefulWidget {
   const InventoryListScreen({super.key});
@@ -37,15 +40,42 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     }).toList();
   }
 
+  Future<void> _scanToFind(String merchantId) async {
+    final code = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const BarcodeScannerScreen(title: 'Scan to Find Product')),
+    );
+    if (code == null || !mounted) return;
+
+    final products = ref.read(storeProductsProvider(merchantId)).valueOrNull ?? const [];
+    final matches = products.where((p) => p.barcode == code).toList();
+    final match = matches.isNotEmpty ? matches.first : null;
+    if (match != null) {
+      if (mounted) context.push('/merchant/products/${match.id}');
+    } else if (mounted) {
+      showAppSnackBar(context, 'No product found with that code.', isError: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(appUserProvider).valueOrNull;
     if (user == null) return const Scaffold(body: LoadingSpinner());
 
     final productsAsync = ref.watch(storeProductsProvider(user.id));
+    final store = ref.watch(myStoreProvider).valueOrNull;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Inventory')),
+      appBar: AppBar(
+        title: const Text('Inventory'),
+        actions: [
+          if (store?.barcodeEnabled ?? false)
+            IconButton(
+              icon: const Icon(Icons.qr_code_scanner_rounded),
+              tooltip: 'Scan to find product',
+              onPressed: () => _scanToFind(user.id),
+            ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/merchant/products/new'),
         icon: const Icon(Icons.add_rounded),

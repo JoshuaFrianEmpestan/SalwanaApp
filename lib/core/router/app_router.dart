@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/enums.dart';
 import '../../core/providers/app_prefs_providers.dart';
 import '../../core/providers/firebase_providers.dart';
-import '../../core/widgets/coming_soon_screen.dart';
 import '../../core/widgets/role_scaffold.dart';
 import '../../features/admin/presentation/admin_audit_log_screen.dart';
 import '../../features/admin/presentation/admin_categories_screen.dart';
@@ -463,13 +462,6 @@ final routerProvider = Provider<GoRouter>((ref) {
 });
 
 final _pendingDetailRoutes = <RouteBase>[
-  for (final entry in <(String, String, String)>[
-    ('/merchant/barcode-settings', 'Barcode / QR Settings', 'Optional barcode/QR scanning was not part of the 16-module build order.'),
-  ])
-    GoRoute(
-      path: entry.$1,
-      builder: (context, state) => ComingSoonScreen(title: entry.$2, moduleNote: entry.$3),
-    ),
   for (final path in [
     '/consumer/profile/edit',
     '/merchant/profile/edit',
