@@ -11,6 +11,7 @@ import '../../features/admin/presentation/admin_categories_screen.dart';
 import '../../features/admin/presentation/admin_dashboard_screen.dart';
 import '../../features/admin/presentation/admin_platform_settings_screen.dart';
 import '../../features/admin/presentation/admin_reports_moderation_screen.dart';
+import '../../features/admin/presentation/admin_reports_screen.dart';
 import '../../features/admin/presentation/admin_settings_screen.dart';
 import '../../features/admin/presentation/admin_subscription_plans_screen.dart';
 import '../../features/admin/presentation/admin_transactions_screen.dart';
@@ -289,14 +290,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             GoRoute(path: '/admin/transactions', builder: (context, state) => const AdminTransactionsScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/admin/reports',
-              builder: (context, state) => const ComingSoonScreen(
-                title: 'Reports',
-                moduleNote: 'Administrative analytics & PDF/Excel reports (module 15).',
-                icon: Icons.bar_chart_outlined,
-              ),
-            ),
+            GoRoute(path: '/admin/reports', builder: (context, state) => const AdminReportsScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/admin/settings', builder: (context, state) => const AdminSettingsScreen()),
