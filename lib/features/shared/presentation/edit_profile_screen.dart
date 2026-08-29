@@ -7,6 +7,7 @@ import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/image_picker_field.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/responsive_form_body.dart';
 import '../../../core/widgets/state_views.dart';
 import '../data/profile_repository.dart';
 
@@ -48,6 +49,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Profile')),
       body: SafeArea(
+        child: ResponsiveFormBody(
         child: userAsync.when(
           loading: () => const LoadingListView(),
           error: (e, _) => ErrorStateView(onRetry: () => ref.invalidate(appUserProvider)),
@@ -96,6 +98,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
             );
           },
+        ),
         ),
       ),
     );

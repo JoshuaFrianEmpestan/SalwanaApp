@@ -6,6 +6,7 @@ import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/responsive_form_body.dart';
 import '../data/profile_repository.dart';
 
 class SecurityScreen extends ConsumerStatefulWidget {
@@ -49,6 +50,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Security')),
       body: SafeArea(
+        child: ResponsiveFormBody(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -85,6 +87,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

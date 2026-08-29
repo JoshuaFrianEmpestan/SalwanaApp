@@ -7,6 +7,7 @@ import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/responsive_form_body.dart';
 import '../data/finance_repository.dart';
 
 class LoanFormScreen extends ConsumerStatefulWidget {
@@ -55,6 +56,7 @@ class _LoanFormScreenState extends ConsumerState<LoanFormScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Add Loan')),
       body: SafeArea(
+        child: ResponsiveFormBody(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Form(
@@ -85,6 +87,7 @@ class _LoanFormScreenState extends ConsumerState<LoanFormScreen> {
               ],
             ),
           ),
+        ),
         ),
       ),
     );

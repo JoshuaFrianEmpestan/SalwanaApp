@@ -139,17 +139,28 @@ class _CartItemTile extends ConsumerWidget {
             children: [
               IconButton(
                 icon: const Icon(Icons.remove_circle_outline_rounded, size: 20),
+                tooltip: 'Decrease quantity',
                 onPressed: () => ref.read(cartRepositoryProvider).updateQuantity(userId, item.productId, item.quantity - 1),
               ),
-              Text('${item.quantity}', style: const TextStyle(fontWeight: FontWeight.w700)),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
+                child: Text(
+                  '${item.quantity}',
+                  key: ValueKey(item.quantity),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
               IconButton(
                 icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
+                tooltip: 'Increase quantity',
                 onPressed: () => ref.read(cartRepositoryProvider).updateQuantity(userId, item.productId, item.quantity + 1),
               ),
             ],
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline_rounded, size: 20, color: AppColors.error),
+            tooltip: 'Remove item',
             onPressed: () async {
               final confirmed = await showConfirmDialog(
                 context,

@@ -5,6 +5,7 @@ import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/responsive_form_body.dart';
 import '../data/auth_repository.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
@@ -38,9 +39,11 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Reset Password')),
       body: SafeArea(
+        child: ResponsiveFormBody(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: _sent ? _buildSentState() : _buildForm(),
+        ),
         ),
       ),
     );

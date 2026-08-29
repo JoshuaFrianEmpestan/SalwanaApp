@@ -56,6 +56,7 @@ class _AppTextFieldState extends State<AppTextField> {
         suffixIcon: widget.obscureText
             ? IconButton(
                 icon: Icon(_obscured ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 20),
+                tooltip: _obscured ? 'Show password' : 'Hide password',
                 onPressed: () => setState(() => _obscured = !_obscured),
               )
             : null,

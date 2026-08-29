@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/enums.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/breakpoints.dart';
 import '../../../core/widgets/consumer_product_card.dart';
 import '../../../core/widgets/notification_bell.dart';
 import '../../../core/widgets/order_list_tile.dart';
@@ -190,19 +191,21 @@ class _ConsumerHomeScreenState extends ConsumerState<ConsumerHomeScreen> {
                     );
                   }
                   final recent = products.take(10).toList();
-                  return GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: recent.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 0.72,
-                    ),
-                    itemBuilder: (context, i) => ConsumerProductCard(
-                      product: recent[i],
-                      onTap: () => context.push('/consumer/products/${recent[i].id}'),
+                  return LayoutBuilder(
+                    builder: (context, constraints) => GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: recent.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: Breakpoints.gridColumns(constraints.maxWidth),
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: 0.72,
+                      ),
+                      itemBuilder: (context, i) => ConsumerProductCard(
+                        product: recent[i],
+                        onTap: () => context.push('/consumer/products/${recent[i].id}'),
+                      ),
                     ),
                   );
                 },

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/breakpoints.dart';
 import '../../../core/widgets/restock_request_tile.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../merchant/data/restock_repository.dart';
@@ -32,19 +33,21 @@ class SupplierDashboardScreen extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: 1.7,
-                    children: [
-                      _StatCard(label: 'New Requests', value: newCount, color: AppColors.pending, onTap: () => context.go('/supplier/requests')),
-                      _StatCard(label: 'Accepted', value: accepted, color: AppColors.info, onTap: () => context.go('/supplier/requests')),
-                      _StatCard(label: 'Processing', value: processing, color: AppColors.info, onTap: () => context.go('/supplier/requests')),
-                      _StatCard(label: 'Dispatched', value: dispatched, color: AppColors.success, onTap: () => context.go('/supplier/requests')),
-                    ],
+                  LayoutBuilder(
+                    builder: (context, constraints) => GridView.count(
+                      crossAxisCount: Breakpoints.gridColumns(constraints.maxWidth),
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: 1.7,
+                      children: [
+                        _StatCard(label: 'New Requests', value: newCount, color: AppColors.pending, onTap: () => context.go('/supplier/requests')),
+                        _StatCard(label: 'Accepted', value: accepted, color: AppColors.info, onTap: () => context.go('/supplier/requests')),
+                        _StatCard(label: 'Processing', value: processing, color: AppColors.info, onTap: () => context.go('/supplier/requests')),
+                        _StatCard(label: 'Dispatched', value: dispatched, color: AppColors.success, onTap: () => context.go('/supplier/requests')),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 20),
                   Text('$completed deliveries completed all-time', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),

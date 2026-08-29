@@ -9,6 +9,7 @@ import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/image_picker_field.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/responsive_form_body.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../models/product.dart';
 import '../data/product_repository.dart';
@@ -183,7 +184,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(existing == null ? 'Add Product' : 'Edit Product')),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: ResponsiveFormBody(
+          child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Form(
             key: _formKey,
@@ -264,6 +266,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                 const SizedBox(height: 24),
               ],
             ),
+          ),
           ),
         ),
       ),

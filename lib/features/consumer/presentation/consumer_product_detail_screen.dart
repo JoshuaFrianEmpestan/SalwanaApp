@@ -67,9 +67,12 @@ class _ConsumerProductDetailScreenState extends ConsumerState<ConsumerProductDet
                         borderRadius: BorderRadius.circular(14),
                         child: AspectRatio(
                           aspectRatio: 16 / 11,
-                          child: product.imageUrls.isNotEmpty
-                              ? CachedNetworkImage(imageUrl: product.imageUrls.first, fit: BoxFit.cover)
-                              : Container(color: AppColors.neutralBg, child: const Icon(Icons.inventory_2_outlined, size: 48, color: AppColors.textSecondary)),
+                          child: Hero(
+                            tag: 'product-image-${product.id}',
+                            child: product.imageUrls.isNotEmpty
+                                ? CachedNetworkImage(imageUrl: product.imageUrls.first, fit: BoxFit.cover)
+                                : Container(color: AppColors.neutralBg, child: const Icon(Icons.inventory_2_outlined, size: 48, color: AppColors.textSecondary)),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -179,11 +182,13 @@ class _ConsumerProductDetailScreenState extends ConsumerState<ConsumerProductDet
                           IconButton(
                             onPressed: _quantity > 1 ? () => setState(() => _quantity--) : null,
                             icon: const Icon(Icons.remove_circle_outline_rounded),
+                            tooltip: 'Decrease quantity',
                           ),
                           Text('$_quantity', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                           IconButton(
                             onPressed: _quantity < product.availableStock ? () => setState(() => _quantity++) : null,
                             icon: const Icon(Icons.add_circle_outline_rounded),
+                            tooltip: 'Increase quantity',
                           ),
                           const SizedBox(width: 8),
                           Expanded(

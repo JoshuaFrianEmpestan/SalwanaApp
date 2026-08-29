@@ -24,6 +24,20 @@ Future<void> main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  // Offline support (§7): cache reads/writes locally so the app stays
+  // usable (and queues writes) when connectivity drops. On web this is
+  // IndexedDB-backed and only reliable in a single tab; best-effort since
+  // some browsers/private-mode sessions block IndexedDB entirely.
+  try {
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    );
+  } catch (_) {
+    // Persistence unavailable (e.g. multiple open tabs on web) — the app
+    // still works, just without an offline cache.
+  }
+
   if (_useFirebaseEmulator) {
     // Use the literal IPv4 loopback address, not "localhost" — on Windows
     // "localhost" can resolve to the IPv6 loopback (::1) first, which the

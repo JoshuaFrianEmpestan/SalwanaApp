@@ -7,6 +7,7 @@ import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/responsive_form_body.dart';
 import '../../../core/widgets/state_views.dart';
 import '../data/finance_repository.dart';
 
@@ -25,6 +26,7 @@ class CapitalScreen extends ConsumerWidget {
         label: const Text('Add Capital'),
       ),
       body: SafeArea(
+        child: ResponsiveFormBody(
         child: capitalAsync.when(
           loading: () => const LoadingListView(),
           error: (e, _) => ErrorStateView(onRetry: () => ref.invalidate(merchantCapitalProvider)),
@@ -75,6 +77,7 @@ class CapitalScreen extends ConsumerWidget {
               ],
             );
           },
+        ),
         ),
       ),
     );

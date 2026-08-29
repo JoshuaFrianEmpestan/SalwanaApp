@@ -115,11 +115,13 @@ class _ReserveProductScreenState extends ConsumerState<ReserveProductScreen> {
                       IconButton(
                         onPressed: _quantity > 1 ? () => setState(() => _quantity--) : null,
                         icon: const Icon(Icons.remove_circle_outline_rounded),
+                        tooltip: 'Decrease quantity',
                       ),
                       Text('$_quantity', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                       IconButton(
                         onPressed: _quantity < product.availableStock ? () => setState(() => _quantity++) : null,
                         icon: const Icon(Icons.add_circle_outline_rounded),
+                        tooltip: 'Increase quantity',
                       ),
                     ],
                   ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/breakpoints.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/notification_bell.dart';
 import '../../../core/widgets/state_views.dart';
@@ -34,8 +35,9 @@ class AdminDashboardScreen extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  GridView.count(
-                    crossAxisCount: 2,
+                  LayoutBuilder(
+                    builder: (context, constraints) => GridView.count(
+                    crossAxisCount: Breakpoints.gridColumns(constraints.maxWidth),
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     mainAxisSpacing: 10,
@@ -59,7 +61,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                         onTap: () => context.push('/admin/reports-moderation'),
                       ),
                     ],
-                  ),
+                  )),
                   const SizedBox(height: 10),
                   Container(
                     width: double.infinity,

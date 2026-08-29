@@ -7,6 +7,7 @@ import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/responsive_form_body.dart';
 import '../data/auth_repository.dart';
 import '../data/onboarding_repository.dart';
 
@@ -128,6 +129,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         title: const Text('Create Account'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: 'Back',
           onPressed: () {
             if (_step == 1) {
               _goToStep(0);
@@ -140,10 +142,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         ),
       ),
       body: SafeArea(
+        child: ResponsiveFormBody(
         child: PageView(
           controller: _pageController,
           physics: const NeverScrollableScrollPhysics(),
           children: [_buildAccountStep(), _buildBusinessStep()],
+        ),
         ),
       ),
     );

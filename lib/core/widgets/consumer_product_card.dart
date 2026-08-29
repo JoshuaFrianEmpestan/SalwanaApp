@@ -35,9 +35,12 @@ class ConsumerProductCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  product.imageUrls.isNotEmpty
-                      ? CachedNetworkImage(imageUrl: product.imageUrls.first, fit: BoxFit.cover)
-                      : Container(color: AppColors.neutralBg, child: const Icon(Icons.inventory_2_outlined, color: AppColors.textSecondary, size: 32)),
+                  Hero(
+                    tag: 'product-image-${product.id}',
+                    child: product.imageUrls.isNotEmpty
+                        ? CachedNetworkImage(imageUrl: product.imageUrls.first, fit: BoxFit.cover)
+                        : Container(color: AppColors.neutralBg, child: const Icon(Icons.inventory_2_outlined, color: AppColors.textSecondary, size: 32)),
+                  ),
                   if (outOfStock)
                     Container(
                       color: Colors.black45,

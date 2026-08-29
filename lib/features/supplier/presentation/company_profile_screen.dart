@@ -6,6 +6,7 @@ import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/responsive_form_body.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../models/supplier.dart';
@@ -68,6 +69,7 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Company Profile')),
       body: SafeArea(
+        child: ResponsiveFormBody(
         child: profileAsync.when(
           loading: () => const LoadingListView(),
           error: (e, _) => ErrorStateView(onRetry: () => ref.invalidate(mySupplierProfileProvider)),
@@ -110,6 +112,7 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
               ),
             );
           },
+        ),
         ),
       ),
     );

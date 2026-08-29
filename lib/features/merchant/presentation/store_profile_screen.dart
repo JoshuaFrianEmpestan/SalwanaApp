@@ -7,6 +7,7 @@ import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/image_picker_field.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/responsive_form_body.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../models/store.dart';
@@ -89,6 +90,7 @@ class _StoreProfileScreenState extends ConsumerState<StoreProfileScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Store Profile')),
       body: SafeArea(
+        child: ResponsiveFormBody(
         child: storeAsync.when(
           loading: () => const LoadingListView(),
           error: (e, _) => ErrorStateView(onRetry: () => ref.invalidate(myStoreProvider)),
@@ -196,6 +198,7 @@ class _StoreProfileScreenState extends ConsumerState<StoreProfileScreen> {
               ),
             );
           },
+        ),
         ),
       ),
     );

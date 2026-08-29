@@ -8,6 +8,7 @@ import 'package:printing/printing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/constants/enums.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/breakpoints.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -254,8 +255,9 @@ class _StatGrid extends StatelessWidget {
       ('Available', '${product.availableStock} ${product.unit}'),
       ('Min. Level', '${product.minStockLevel} ${product.unit}'),
     ];
-    return GridView.count(
-      crossAxisCount: 2,
+    return LayoutBuilder(
+      builder: (context, constraints) => GridView.count(
+      crossAxisCount: Breakpoints.gridColumns(constraints.maxWidth),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 10,
@@ -276,6 +278,7 @@ class _StatGrid extends StatelessWidget {
             ),
           ),
       ],
+      ),
     );
   }
 }

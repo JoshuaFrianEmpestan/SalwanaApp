@@ -56,6 +56,7 @@ class FollowedProductsScreen extends ConsumerWidget {
                         ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.textSecondary),
+                        tooltip: 'Unfollow',
                         onPressed: () async {
                           if (user == null || f.productId == null) return;
                           final confirmed = await showConfirmDialog(context, title: 'Unfollow', message: 'Stop watching this product for restock?', confirmLabel: 'Unfollow', destructive: true);

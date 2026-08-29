@@ -6,6 +6,7 @@ import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/responsive_form_body.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../models/supplier.dart';
 import '../data/supplier_product_repository.dart';
@@ -103,6 +104,7 @@ class _SupplierProductFormScreenState extends ConsumerState<SupplierProductFormS
     return Scaffold(
       appBar: AppBar(title: Text(existing == null ? 'Add Supply' : 'Edit Supply')),
       body: SafeArea(
+        child: ResponsiveFormBody(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Form(
@@ -128,6 +130,7 @@ class _SupplierProductFormScreenState extends ConsumerState<SupplierProductFormS
               ],
             ),
           ),
+        ),
         ),
       ),
     );

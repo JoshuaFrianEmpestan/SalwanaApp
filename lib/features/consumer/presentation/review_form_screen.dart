@@ -6,6 +6,7 @@ import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/responsive_form_body.dart';
 import '../../../core/widgets/state_views.dart';
 import '../data/review_repository.dart';
 
@@ -56,6 +57,7 @@ class _ReviewFormScreenState extends ConsumerState<ReviewFormScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Write a Review')),
       body: SafeArea(
+        child: ResponsiveFormBody(
         child: reviewAsync.when(
           loading: () => const LoadingListView(),
           error: (e, _) => ErrorStateView(onRetry: () => ref.invalidate(reviewByOrderProvider(widget.orderId))),
@@ -79,6 +81,7 @@ class _ReviewFormScreenState extends ConsumerState<ReviewFormScreen> {
                         for (int i = 1; i <= 5; i++)
                           IconButton(
                             iconSize: 36,
+                            tooltip: 'Rate $i out of 5',
                             onPressed: () => setState(() => _rating = i),
                             icon: Icon(i <= _rating ? Icons.star_rounded : Icons.star_border_rounded, color: AppColors.warning),
                           ),
@@ -93,6 +96,7 @@ class _ReviewFormScreenState extends ConsumerState<ReviewFormScreen> {
               ),
             );
           },
+        ),
         ),
       ),
     );

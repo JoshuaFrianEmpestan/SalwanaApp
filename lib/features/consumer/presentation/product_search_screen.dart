@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/breakpoints.dart';
 import '../../../core/widgets/consumer_product_card.dart';
 import '../../../core/widgets/state_views.dart';
 import '../data/catalog_repository.dart';
@@ -150,18 +151,20 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
                           title: 'No products found',
                           message: 'Try a different search term or clear some filters.',
                         )
-                      : GridView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                          itemCount: filtered.length,
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            childAspectRatio: 0.72,
-                          ),
-                          itemBuilder: (context, i) => ConsumerProductCard(
-                            product: filtered[i],
-                            onTap: () => context.push('/consumer/products/${filtered[i].id}'),
+                      : LayoutBuilder(
+                          builder: (context, constraints) => GridView.builder(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                            itemCount: filtered.length,
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: Breakpoints.gridColumns(constraints.maxWidth),
+                              mainAxisSpacing: 12,
+                              crossAxisSpacing: 12,
+                              childAspectRatio: 0.72,
+                            ),
+                            itemBuilder: (context, i) => ConsumerProductCard(
+                              product: filtered[i],
+                              onTap: () => context.push('/consumer/products/${filtered[i].id}'),
+                            ),
                           ),
                         ),
                 ),
