@@ -27,10 +27,12 @@ service firebase.storage {
       allow write: if isSignedIn() && request.auth.uid == uid && isValidImage();
     }
 
-    // Generated reports — private, Cloud Functions write them; owner reads.
+    // Generated reports (§15) — private, the generating user uploads
+    // their own (self-service, matches the Firestore `reports` rule).
     match /reports/{uid}/{allPaths=**} {
       allow read: if isSignedIn() && request.auth.uid == uid;
-      allow write: if false;
+      allow write: if isSignedIn() && request.auth.uid == uid &&
+        request.resource.size < 15 * 1024 * 1024;
     }
   }
 }

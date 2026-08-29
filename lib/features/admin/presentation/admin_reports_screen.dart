@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/enums.dart';
+import '../../../core/providers/firebase_providers.dart';
 import '../../../core/services/report_export_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/confirm_dialog.dart';
+import '../../../core/widgets/report_history_list.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../merchant/data/report_repository.dart';
 import '../data/admin_repository.dart';
@@ -79,6 +81,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final result = _buildResult();
+    final admin = ref.watch(appUserProvider).valueOrNull;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Reports')),
@@ -108,7 +111,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: _exporting ? null : () => _export(() => ReportExportService().exportPdf(result)),
+                      onPressed: _exporting || admin == null ? null : () => _export(() => ReportExportService().exportPdf(result, generatedByUserId: admin.id)),
                       icon: const Icon(Icons.picture_as_pdf_outlined, size: 16),
                       label: const Text('Export PDF'),
                     ),
@@ -116,7 +119,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: _exporting ? null : () => _export(() => ReportExportService().exportExcel(result)),
+                      onPressed: _exporting || admin == null ? null : () => _export(() => ReportExportService().exportExcel(result, generatedByUserId: admin.id)),
                       icon: const Icon(Icons.table_chart_outlined, size: 16),
                       label: const Text('Export Excel'),
                     ),
@@ -136,6 +139,12 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
                     ],
                   ),
                 ),
+            ],
+            if (admin != null) ...[
+              const SizedBox(height: 24),
+              const Text('Report History', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 10),
+              ReportHistoryList(userId: admin.id),
             ],
           ],
         ),

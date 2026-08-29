@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/report_history_list.dart';
 import '../../../core/widgets/state_views.dart';
 import '../data/report_repository.dart';
 import '../data/subscription_repository.dart';
@@ -128,7 +129,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 children: [
                                   Expanded(
                                     child: OutlinedButton.icon(
-                                      onPressed: _exporting ? null : () => _export(() => ReportExportService().exportPdf(result)),
+                                      onPressed: _exporting ? null : () => _export(() => ReportExportService().exportPdf(result, generatedByUserId: user.id, storeId: user.id)),
                                       icon: const Icon(Icons.picture_as_pdf_outlined, size: 16),
                                       label: const Text('Export PDF'),
                                     ),
@@ -136,7 +137,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: OutlinedButton.icon(
-                                      onPressed: _exporting ? null : () => _export(() => ReportExportService().exportExcel(result)),
+                                      onPressed: _exporting ? null : () => _export(() => ReportExportService().exportExcel(result, generatedByUserId: user.id, storeId: user.id)),
                                       icon: const Icon(Icons.table_chart_outlined, size: 16),
                                       label: const Text('Export Excel'),
                                     ),
@@ -161,6 +162,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         );
                       },
                     ),
+                  const SizedBox(height: 24),
+                  const Text('Report History', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 10),
+                  ReportHistoryList(userId: user.id),
                 ],
               ),
       ),

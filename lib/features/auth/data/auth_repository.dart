@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/enums.dart';
 import '../../../core/providers/firebase_providers.dart';
@@ -87,7 +88,20 @@ class AuthRepository {
     }
   }
 
-  Future<void> logout() => _auth.signOut();
+  /// Clears the FCM token before signing out — must happen first, since
+  /// writing to the user's own doc requires still being authenticated as
+  /// them (§20 ownership rules). Best-effort: a failure here never blocks
+  /// sign-out itself.
+  Future<void> logout() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid != null) {
+      try {
+        await FirebaseMessaging.instance.deleteToken();
+        await _db.collection('users').doc(uid).update({'fcmToken': null});
+      } catch (_) {}
+    }
+    await _auth.signOut();
+  }
 
   Future<void> sendPasswordReset(String email) async {
     try {

@@ -267,9 +267,13 @@ service cloud.firestore {
     }
 
     // ---------------- reports ----------------
+    // Self-service record of a report the user generated (§15) — low
+    // stakes (bookkeeping, not money/stock), so unlike orders/payments
+    // this doesn't need a Cloud Function in front of it.
     match /reports/{reportId} {
       allow read: if isSignedIn() && (resource.data.generatedByUserId == request.auth.uid || isAdmin());
-      allow write: if false; // Cloud Functions only
+      allow create: if isSignedIn() && request.resource.data.generatedByUserId == request.auth.uid;
+      allow update, delete: if false;
     }
 
     // ---------------- audit_logs (Functions-only writes) ----------------
