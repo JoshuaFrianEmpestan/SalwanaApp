@@ -46,6 +46,7 @@ class SupplierProfileScreen extends ConsumerWidget {
                 ProfileMenuTile(icon: Icons.receipt_long_outlined, label: 'Payment History', onTap: () => context.go('/supplier/transactions')),
                 const SizedBox(height: 12),
                 const Text('Account', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
+                ProfileMenuTile(icon: Icons.person_outline_rounded, label: 'Edit Profile', onTap: () => context.push('/supplier/profile/edit')),
                 ProfileMenuTile(icon: Icons.notifications_active_outlined, label: 'Notifications', onTap: () => context.push('/supplier/notifications')),
                 ProfileMenuTile(icon: Icons.notifications_outlined, label: 'Notification Settings', onTap: () => context.push('/supplier/notification-settings')),
                 ProfileMenuTile(icon: Icons.lock_outline_rounded, label: 'Security', onTap: () => context.push('/supplier/security')),

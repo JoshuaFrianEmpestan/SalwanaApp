@@ -24,7 +24,9 @@ import '../../features/auth/presentation/pending_verification_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/auth/presentation/verify_email_screen.dart';
+import '../../features/consumer/presentation/address_book_screen.dart';
 import '../../features/consumer/presentation/cart_screen.dart';
+import '../../features/consumer/presentation/followed_products_screen.dart';
 import '../../features/consumer/presentation/checkout_result_screen.dart';
 import '../../features/consumer/presentation/checkout_screen.dart';
 import '../../features/consumer/presentation/consumer_home_screen.dart';
@@ -33,7 +35,10 @@ import '../../features/consumer/presentation/order_detail_screen.dart';
 import '../../features/consumer/presentation/payment_screen.dart';
 import '../../features/consumer/presentation/review_form_screen.dart';
 import '../../features/consumer/presentation/store_reviews_screen.dart';
+import '../../features/shared/presentation/edit_profile_screen.dart';
 import '../../features/shared/presentation/notification_center_screen.dart';
+import '../../features/shared/presentation/notification_settings_screen.dart';
+import '../../features/shared/presentation/security_screen.dart';
 import '../../features/consumer/presentation/consumer_orders_tab_screen.dart';
 import '../../features/consumer/presentation/consumer_product_detail_screen.dart';
 import '../../features/consumer/presentation/consumer_profile_screen.dart';
@@ -465,20 +470,33 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 final _pendingDetailRoutes = <RouteBase>[
   for (final entry in <(String, String, String)>[
-    ('/consumer/profile/edit', 'Edit Profile', 'Profile editing (module 1 follow-up).'),
-    ('/consumer/addresses', 'Saved Addresses', 'Address book (module 6).'),
-    ('/consumer/followed', 'Followed Products', 'Back-in-stock following (module 9).'),
-    ('/consumer/notification-settings', 'Notification Preferences', 'Notification center (module 12).'),
-    ('/consumer/security', 'Security', 'Security settings (module 1 follow-up).'),
-    ('/merchant/barcode-settings', 'Barcode / QR Settings', 'Optional barcode/QR module (module 11).'),
-    ('/merchant/notification-settings', 'Notification Preferences', 'Notification center (module 12).'),
-    ('/merchant/security', 'Security', 'Security settings (module 1 follow-up).'),
-    ('/supplier/notification-settings', 'Notification Settings', 'Notification center (module 12).'),
-    ('/supplier/security', 'Security', 'Security settings (module 1 follow-up).'),
-    ('/admin/security', 'Security', 'Security settings (module 1 follow-up).'),
+    ('/merchant/barcode-settings', 'Barcode / QR Settings', 'Optional barcode/QR scanning was not part of the 16-module build order.'),
   ])
     GoRoute(
       path: entry.$1,
       builder: (context, state) => ComingSoonScreen(title: entry.$2, moduleNote: entry.$3),
     ),
+  for (final path in [
+    '/consumer/profile/edit',
+    '/merchant/profile/edit',
+    '/supplier/profile/edit',
+    '/admin/profile/edit',
+  ])
+    GoRoute(path: path, builder: (context, state) => const EditProfileScreen()),
+  for (final path in [
+    '/consumer/notification-settings',
+    '/merchant/notification-settings',
+    '/supplier/notification-settings',
+    '/admin/notification-settings',
+  ])
+    GoRoute(path: path, builder: (context, state) => const NotificationSettingsScreen()),
+  for (final path in [
+    '/consumer/security',
+    '/merchant/security',
+    '/supplier/security',
+    '/admin/security',
+  ])
+    GoRoute(path: path, builder: (context, state) => const SecurityScreen()),
+  GoRoute(path: '/consumer/addresses', builder: (context, state) => const AddressBookScreen()),
+  GoRoute(path: '/consumer/followed', builder: (context, state) => const FollowedProductsScreen()),
 ];

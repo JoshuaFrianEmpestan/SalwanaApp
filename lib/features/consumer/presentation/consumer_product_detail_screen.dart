@@ -13,6 +13,7 @@ import '../../../models/product.dart';
 import '../../merchant/data/product_repository.dart';
 import '../../merchant/data/store_repository.dart';
 import '../data/cart_repository.dart';
+import '../data/followed_product_repository.dart';
 
 class ConsumerProductDetailScreen extends ConsumerStatefulWidget {
   final String productId;
@@ -203,6 +204,35 @@ class _ConsumerProductDetailScreenState extends ConsumerState<ConsumerProductDet
                             ),
                           ),
                         ],
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: const BoxDecoration(color: AppColors.surface, border: Border(top: BorderSide(color: AppColors.border))),
+                    child: SafeArea(
+                      top: false,
+                      child: Consumer(
+                        builder: (context, ref, _) {
+                          final following = ref.watch(isFollowingProvider(product.id)).valueOrNull ?? false;
+                          return PrimaryButton(
+                            label: following ? 'Following — Notify Me When Back in Stock ✓' : 'Notify Me When Back in Stock',
+                            outlined: following,
+                            onPressed: () async {
+                              final currentUser = ref.read(appUserProvider).valueOrNull;
+                              if (currentUser == null) return;
+                              final repo = ref.read(followedProductRepositoryProvider);
+                              if (following) {
+                                await repo.unfollow(currentUser.id, product.id);
+                              } else {
+                                final storeName = ref.read(_storeProvider(product.storeId)).valueOrNull?.name ?? '';
+                                await repo.follow(consumerId: currentUser.id, product: product, storeName: storeName);
+                                if (context.mounted) showAppSnackBar(context, "We'll notify you when this is back in stock.");
+                              }
+                            },
+                          );
+                        },
                       ),
                     ),
                   ),
