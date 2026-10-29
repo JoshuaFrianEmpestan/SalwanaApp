@@ -35,7 +35,7 @@ class ReservationRepository {
       final user = _auth.currentUser;
       if (user == null) throw ReservationException('Not signed in.');
       final token = await user.getIdToken();
-      final uri = Uri.parse('https://salwana-api.onrender.com/createReservation');
+      final uri = Uri.parse('https://salwanaapp.onrender.com/createReservation');
       final resp = await http.post(
         uri,
         headers: {

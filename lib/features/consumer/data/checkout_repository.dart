@@ -50,7 +50,7 @@ class CheckoutRepository {
       final user = _auth.currentUser;
       if (user == null) throw CheckoutException('Not signed in.');
       final token = await user.getIdToken();
-      final uri = Uri.parse('https://salwana-api.onrender.com/processCheckout');
+      final uri = Uri.parse('https://salwanaapp.onrender.com/processCheckout');
       final resp = await http.post(
         uri,
         headers: {
