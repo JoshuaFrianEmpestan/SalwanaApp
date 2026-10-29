@@ -15,9 +15,12 @@ class CatalogRepository {
     return _db
         .collection('stores')
         .where('verificationStatus', isEqualTo: 'active')
-        .orderBy('name')
         .snapshots()
-        .map((snap) => snap.docs.map((d) => Store.fromMap(d.id, d.data())).toList());
+        .map((snap) {
+          final list = snap.docs.map((d) => Store.fromMap(d.id, d.data())).toList();
+          list.sort((a, b) => a.name.compareTo(b.name));
+          return list;
+        });
   }
 
   Stream<List<Product>> watchStoreActiveProducts(String storeId) {
@@ -37,10 +40,12 @@ class CatalogRepository {
     return _db
         .collection('products')
         .where('status', isEqualTo: 'active')
-        .orderBy('createdAt', descending: true)
-        .limit(limit)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => Product.fromMap(d.id, d.data())).toList());
+        .map((snap) {
+          final list = snap.docs.map((d) => Product.fromMap(d.id, d.data())).toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list.take(limit).toList();
+        });
   }
 }
 
@@ -49,7 +54,10 @@ final catalogRepositoryProvider = Provider<CatalogRepository>((ref) {
 });
 
 final activeStoresProvider = StreamProvider<List<Store>>((ref) {
-  return ref.watch(catalogRepositoryProvider).watchActiveStores();
+  return ref.watch(catalogRepositoryProvider).watchActiveStores().handleError((e, st) {
+    // ignore: avoid_print
+    print('activeStoresProvider error: $e');
+  });
 });
 
 final storeActiveProductsProvider = StreamProvider.family<List<Product>, String>((ref, storeId) {
@@ -57,5 +65,8 @@ final storeActiveProductsProvider = StreamProvider.family<List<Product>, String>
 });
 
 final catalogFeedProvider = StreamProvider<List<Product>>((ref) {
-  return ref.watch(catalogRepositoryProvider).watchCatalog();
+  return ref.watch(catalogRepositoryProvider).watchCatalog().handleError((e, st) {
+    // ignore: avoid_print
+    print('catalogFeedProvider error: $e');
+  });
 });

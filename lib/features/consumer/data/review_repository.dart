@@ -66,9 +66,12 @@ class ReviewRepository {
     return _db
         .collection('store_reviews')
         .where('storeId', isEqualTo: storeId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((s) => s.docs.map((d) => StoreReview.fromMap(d.id, d.data())).where((r) => !r.hidden).toList());
+        .map((s) {
+          final list = s.docs.map((d) => StoreReview.fromMap(d.id, d.data())).where((r) => !r.hidden).toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
   }
 
   Stream<StoreReview?> watchReview(String orderId) {

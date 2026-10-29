@@ -30,8 +30,7 @@ Future<void> main() async {
   // some browsers/private-mode sessions block IndexedDB entirely.
   try {
     FirebaseFirestore.instance.settings = const Settings(
-      persistenceEnabled: true,
-      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+      persistenceEnabled: false,
     );
   } catch (_) {
     // Persistence unavailable (e.g. multiple open tabs on web) — the app

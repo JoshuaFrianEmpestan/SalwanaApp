@@ -42,10 +42,10 @@ class SupplierDashboardScreen extends ConsumerWidget {
                       crossAxisSpacing: 10,
                       childAspectRatio: 1.7,
                       children: [
-                        _StatCard(label: 'New Requests', value: newCount, color: AppColors.pending, onTap: () => context.go('/supplier/requests')),
-                        _StatCard(label: 'Accepted', value: accepted, color: AppColors.info, onTap: () => context.go('/supplier/requests')),
-                        _StatCard(label: 'Processing', value: processing, color: AppColors.info, onTap: () => context.go('/supplier/requests')),
-                        _StatCard(label: 'Dispatched', value: dispatched, color: AppColors.success, onTap: () => context.go('/supplier/requests')),
+                         _StatCard(label: 'New Requests', value: newCount, color: AppColors.pending),
+                         _StatCard(label: 'Accepted', value: accepted, color: AppColors.info),
+                         _StatCard(label: 'Processing', value: processing, color: AppColors.info),
+                         _StatCard(label: 'Dispatched', value: dispatched, color: AppColors.success),
                       ],
                     ),
                   ),
@@ -79,25 +79,20 @@ class _StatCard extends StatelessWidget {
   final String label;
   final int value;
   final Color color;
-  final VoidCallback onTap;
-  const _StatCard({required this.label, required this.value, required this.color, required this.onTap});
+  const _StatCard({required this.label, required this.value, required this.color});
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('$value', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: color)),
-            Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('$value', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: color)),
+          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+        ],
       ),
     );
   }

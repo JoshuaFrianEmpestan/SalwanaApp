@@ -55,6 +55,9 @@ class AuthRepository {
     required UserRole role,
   }) async {
     try {
+      if (role == UserRole.admin) {
+        throw AuthException('Administrator accounts cannot be created through registration.');
+      }
       final credential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
       final uid = credential.user!.uid;
 
@@ -93,13 +96,6 @@ class AuthRepository {
   /// them (§20 ownership rules). Best-effort: a failure here never blocks
   /// sign-out itself.
   Future<void> logout() async {
-    final uid = _auth.currentUser?.uid;
-    if (uid != null) {
-      try {
-        await FirebaseMessaging.instance.deleteToken();
-        await _db.collection('users').doc(uid).update({'fcmToken': null});
-      } catch (_) {}
-    }
     await _auth.signOut();
   }
 

@@ -142,9 +142,12 @@ class FinanceRepository {
     return _db
         .collection('expenses')
         .where('merchantId', isEqualTo: merchantId)
-        .orderBy('incurredAt', descending: true)
         .snapshots()
-        .map((s) => s.docs.map((d) => Expense.fromMap(d.id, d.data())).toList());
+        .map((s) {
+          final list = s.docs.map((d) => Expense.fromMap(d.id, d.data())).toList();
+          list.sort((a, b) => b.incurredAt.compareTo(a.incurredAt));
+          return list;
+        });
   }
 
   Future<void> addExpense({

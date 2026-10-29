@@ -89,7 +89,9 @@ class _StockAdjustmentScreenState extends ConsumerState<StockAdjustmentScreen> {
       }
     } on InsufficientStockException catch (e) {
       if (mounted) showAppSnackBar(context, e.message, isError: true);
-    } catch (_) {
+    } catch (e, st) {
+      // ignore: avoid_print
+      print('stock adjustment error: $e\n$st');
       if (mounted) showAppSnackBar(context, 'Could not update stock. Please try again.', isError: true);
     } finally {
       if (mounted) setState(() => _saving = false);

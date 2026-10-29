@@ -14,9 +14,12 @@ class ProductRepository {
   Stream<List<Product>> watchStoreProducts(String storeId) {
     return _products
         .where('storeId', isEqualTo: storeId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => Product.fromMap(d.id, d.data())).toList());
+        .map((snap) {
+          final list = snap.docs.map((d) => Product.fromMap(d.id, d.data())).toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
   }
 
   Stream<Product?> watchProduct(String productId) {
@@ -111,5 +114,8 @@ final productRepositoryProvider = Provider<ProductRepository>((ref) {
 });
 
 final storeProductsProvider = StreamProvider.family<List<Product>, String>((ref, storeId) {
-  return ref.watch(productRepositoryProvider).watchStoreProducts(storeId);
+  return ref.watch(productRepositoryProvider).watchStoreProducts(storeId).handleError((e, st) {
+    // ignore: avoid_print
+    print('storeProductsProvider error: $e');
+  });
 });

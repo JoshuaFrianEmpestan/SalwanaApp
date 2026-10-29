@@ -84,7 +84,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
       body: SafeArea(
         child: productsAsync.when(
           loading: () => const LoadingListView(),
-          error: (e, _) => ErrorStateView(onRetry: () => ref.invalidate(storeProductsProvider(user.id))),
+          error: (e, _) => ErrorStateView(message: e.toString(), onRetry: () => ref.invalidate(storeProductsProvider(user.id))),
           data: (allProducts) {
             if (allProducts.isEmpty) {
               return EmptyStateView(

@@ -32,9 +32,12 @@ class OrderRepository {
     return _db
         .collection('orders')
         .where('merchantId', isEqualTo: merchantId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => Order.fromMap(d.id, d.data())).toList());
+        .map((snap) {
+          final list = snap.docs.map((d) => Order.fromMap(d.id, d.data())).toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
   }
 
   Future<void> _act(String orderId, String action, {String? reason}) async {
@@ -70,5 +73,8 @@ final consumerOrdersProvider = StreamProvider<List<Order>>((ref) {
 final merchantOrdersProvider = StreamProvider<List<Order>>((ref) {
   final user = ref.watch(appUserProvider).valueOrNull;
   if (user == null) return Stream.value(const []);
-  return ref.watch(orderRepositoryProvider).watchMerchantOrders(user.id);
+  return ref.watch(orderRepositoryProvider).watchMerchantOrders(user.id).handleError((e, st) {
+    // ignore: avoid_print
+    print('merchantOrdersProvider error: $e');
+  });
 });

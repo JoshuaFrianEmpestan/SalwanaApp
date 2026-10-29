@@ -52,7 +52,8 @@ service cloud.firestore {
     // ---------------- users ----------------
     match /users/{uid} {
       allow read: if isOwner(uid) || isAdmin();
-      allow create: if isOwner(uid);
+      allow create: if isOwner(uid) &&
+        request.resource.data.role in ['consumer', 'merchant', 'supplier'];
       // Users may update their own non-privileged fields; role/status
       // changes are restricted to admins (enforced further via Functions
       // for audit logging — this rule only stops a client from
@@ -102,8 +103,10 @@ service cloud.firestore {
     // ---------------- inventory_movements (Functions-only writes) ----------------
     match /inventory_movements/{movementId} {
       allow read: if isSignedIn() &&
-        (isAdmin() || isStoreOwner(resource.data.storeId));
-      allow write: if false;
+        (isAdmin() || get(/databases/$(database)/documents/products/$(resource.data.productId)).data.merchantId == request.auth.uid);
+      allow create: if isSignedIn() &&
+        (isAdmin() || request.resource.data.performedByUserId == request.auth.uid);
+      allow update, delete: if false;
     }
 
     // ---------------- carts (per-user) ----------------

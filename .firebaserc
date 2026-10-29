@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "demo-salwana"
-  }
+    "default": "salwanaapp-e9773"
+  },
+  "targets": {},
+  "etags": {}
 }

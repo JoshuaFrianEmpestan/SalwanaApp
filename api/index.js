@@ -4,7 +4,14 @@ const admin = require('firebase-admin');
 const { v4: uuidv4 } = require('uuid');
 
 if (admin.apps.length === 0) {
-  admin.initializeApp();
+  if (process.env.GOOGLE_SERVICE_ACCOUNT) {
+    const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+  } else {
+    admin.initializeApp();
+  }
 }
 
 const db = admin.firestore();

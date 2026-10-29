@@ -71,7 +71,6 @@ import '../../features/supplier/presentation/supplier_dashboard_screen.dart';
 import '../../features/supplier/presentation/supplier_product_form_screen.dart';
 import '../../features/supplier/presentation/supplier_products_list_screen.dart';
 import '../../features/supplier/presentation/supplier_requests_list_screen.dart';
-import '../../features/supplier/presentation/supplier_transactions_screen.dart';
 import '../../features/merchant/presentation/inventory_list_screen.dart';
 import '../../features/merchant/presentation/merchant_profile_screen.dart';
 import '../../features/merchant/presentation/product_detail_screen.dart';
@@ -130,10 +129,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         if (!ref.read(onboardingSeenProvider) && loc != '/onboarding') return '/onboarding';
         if (_preAuthLocations.contains(loc)) return null;
         return '/login';
-      }
-
-      if (!fbUser.emailVerified) {
-        return loc == '/verify-email' ? null : '/verify-email';
       }
 
       final appUserAsync = ref.read(appUserProvider);
@@ -240,30 +235,26 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state, shell) => RoleScaffold(
           navigationShell: shell,
           destinations: const [
-            NavDestination(icon: Icons.dashboard_outlined, selectedIcon: Icons.dashboard_rounded, label: 'Dashboard'),
-            NavDestination(icon: Icons.assignment_outlined, selectedIcon: Icons.assignment_rounded, label: 'Requests'),
-            NavDestination(icon: Icons.inventory_outlined, selectedIcon: Icons.inventory_rounded, label: 'Products'),
-            NavDestination(icon: Icons.receipt_long_outlined, selectedIcon: Icons.receipt_long_rounded, label: 'Transactions'),
-            NavDestination(icon: Icons.person_outline_rounded, selectedIcon: Icons.person_rounded, label: 'Profile'),
+           NavDestination(icon: Icons.dashboard_outlined, selectedIcon: Icons.dashboard_rounded, label: 'Dashboard'),
+           NavDestination(icon: Icons.assignment_outlined, selectedIcon: Icons.assignment_rounded, label: 'Requests'),
+           NavDestination(icon: Icons.inventory_outlined, selectedIcon: Icons.inventory_rounded, label: 'Products'),
+           NavDestination(icon: Icons.person_outline_rounded, selectedIcon: Icons.person_rounded, label: 'Profile'),
           ],
         ),
-        branches: [
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/supplier/dashboard', builder: (context, state) => const SupplierDashboardScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/supplier/requests', builder: (context, state) => const SupplierRequestsListScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/supplier/products', builder: (context, state) => const SupplierProductsListScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/supplier/transactions', builder: (context, state) => const SupplierTransactionsScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/supplier/profile', builder: (context, state) => const SupplierProfileScreen()),
-          ]),
-        ],
+         branches: [
+           StatefulShellBranch(routes: [
+             GoRoute(path: '/supplier/dashboard', builder: (context, state) => const SupplierDashboardScreen()),
+           ]),
+           StatefulShellBranch(routes: [
+             GoRoute(path: '/supplier/requests', builder: (context, state) => const SupplierRequestsListScreen()),
+           ]),
+           StatefulShellBranch(routes: [
+             GoRoute(path: '/supplier/products', builder: (context, state) => const SupplierProductsListScreen()),
+           ]),
+           StatefulShellBranch(routes: [
+             GoRoute(path: '/supplier/profile', builder: (context, state) => const SupplierProfileScreen()),
+           ]),
+         ],
       ),
 
       // ---------------- Admin ----------------

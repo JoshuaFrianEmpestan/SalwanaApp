@@ -50,7 +50,9 @@ class RoleScaffold extends StatelessWidget {
               NavigationRail(
                 selectedIndex: navigationShell.currentIndex,
                 onDestinationSelected: _onSelect,
-                labelType: NavigationRailLabelType.all,
+                labelType: constraints.maxWidth >= Breakpoints.desktop
+                    ? NavigationRailLabelType.none
+                    : NavigationRailLabelType.all,
                 extended: constraints.maxWidth >= Breakpoints.desktop,
                 destinations: [
                   for (final d in destinations)

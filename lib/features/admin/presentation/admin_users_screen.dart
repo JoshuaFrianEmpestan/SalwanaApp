@@ -23,8 +23,7 @@ class AdminUsersScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
-  String _roleFilter = 'all';
-  bool _pendingOnly = false;
+  String _activeFilter = 'all';
   final _search = TextEditingController();
 
   @override
@@ -40,8 +39,8 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           data: (users) {
             final pendingCount = users.where((u) => u.status == AccountStatus.pendingVerification).length;
             var filtered = users.where((u) {
-              if (_roleFilter != 'all' && u.role.name != _roleFilter) return false;
-              if (_pendingOnly && u.status != AccountStatus.pendingVerification) return false;
+              if (_activeFilter == 'pending' && u.status != AccountStatus.pendingVerification) return false;
+              if (_activeFilter != 'all' && _activeFilter != 'pending' && u.role.name != _activeFilter) return false;
               if (_search.text.isNotEmpty && !u.fullName.toLowerCase().contains(_search.text.toLowerCase()) && !u.email.toLowerCase().contains(_search.text.toLowerCase())) return false;
               return true;
             }).toList();
@@ -62,10 +61,10 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     children: [
-                      _Chip(label: 'All', selected: _roleFilter == 'all' && !_pendingOnly, onTap: () => setState(() { _roleFilter = 'all'; _pendingOnly = false; })),
-                      _Chip(label: 'Pending ($pendingCount)', selected: _pendingOnly, onTap: () => setState(() => _pendingOnly = !_pendingOnly)),
+                      _Chip(label: 'All', selected: _activeFilter == 'all', onTap: () => setState(() => _activeFilter = 'all')),
+                      _Chip(label: 'Pending ($pendingCount)', selected: _activeFilter == 'pending', onTap: () => setState(() => _activeFilter = 'pending')),
                       for (final r in UserRole.values)
-                        _Chip(label: r.label, selected: _roleFilter == r.name, onTap: () => setState(() => _roleFilter = _roleFilter == r.name ? 'all' : r.name)),
+                        _Chip(label: r.label, selected: _activeFilter == r.name, onTap: () => setState(() => _activeFilter = r.name)),
                     ],
                   ),
                 ),

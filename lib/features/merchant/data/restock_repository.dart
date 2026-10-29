@@ -24,9 +24,12 @@ class RestockRepository {
     return _db
         .collection('suppliers')
         .where('verificationStatus', isEqualTo: 'active')
-        .orderBy('companyName')
         .snapshots()
-        .map((snap) => snap.docs.map((d) => SupplierProfile.fromMap(d.id, d.data())).toList());
+        .map((snap) {
+          final list = snap.docs.map((d) => SupplierProfile.fromMap(d.id, d.data())).toList();
+          list.sort((a, b) => a.companyName.compareTo(b.companyName));
+          return list;
+        });
   }
 
   Stream<SupplierProfile?> watchSupplier(String supplierId) {
@@ -92,18 +95,24 @@ class RestockRepository {
     return _db
         .collection('restock_requests')
         .where('merchantId', isEqualTo: merchantId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => RestockRequest.fromMap(d.id, d.data())).toList());
+        .map((snap) {
+          final list = snap.docs.map((d) => RestockRequest.fromMap(d.id, d.data())).toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
   }
 
   Stream<List<RestockRequest>> watchSupplierRequests(String supplierId) {
     return _db
         .collection('restock_requests')
         .where('supplierId', isEqualTo: supplierId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => RestockRequest.fromMap(d.id, d.data())).toList());
+        .map((snap) {
+          final list = snap.docs.map((d) => RestockRequest.fromMap(d.id, d.data())).toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
   }
 
   Stream<RestockRequest?> watchRequest(String id) {

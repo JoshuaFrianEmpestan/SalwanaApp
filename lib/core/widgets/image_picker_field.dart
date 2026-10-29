@@ -3,7 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import '../services/image_upload_service.dart';
+import '../services/cloudinary_upload_service.dart';
 import '../theme/app_colors.dart';
 import 'confirm_dialog.dart';
 
@@ -47,13 +47,12 @@ class _ImagePickerFieldState extends ConsumerState<ImagePickerField> {
     });
 
     try {
-      final url = await ref.read(imageUploadServiceProvider).uploadFile(
+      final url = await ref.read(cloudinaryUploadServiceProvider).uploadFile(
             file: _localFile!,
-            path: widget.storagePathBuilder(),
           );
       widget.onUploaded(url);
-    } catch (_) {
-      if (mounted) showAppSnackBar(context, 'Image upload failed. Please try again.', isError: true);
+    } catch (e) {
+      if (mounted) showAppSnackBar(context, 'Image upload failed: $e', isError: true);
       setState(() => _localFile = null);
     } finally {
       if (mounted) setState(() => _uploading = false);

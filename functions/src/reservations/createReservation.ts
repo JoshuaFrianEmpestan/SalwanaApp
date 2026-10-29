@@ -46,7 +46,9 @@ export const createReservation = onCall<CreateReservationRequest>(async (request
     const product = productSnap.data()!;
     if (product.status !== "active") badRequest(`${product.name} is not available for reservation.`);
 
-    const storeRef = db.collection("stores").doc(product.storeId);
+    const storeId = product.storeId ?? product.merchantId;
+    if (!storeId) badRequest("Store not found.");
+    const storeRef = db.collection("stores").doc(storeId);
     const storeSnap = await tx.get(storeRef);
     if (!storeSnap.exists) badRequest("Store not found.");
     const store = storeSnap.data()!;
@@ -69,7 +71,7 @@ export const createReservation = onCall<CreateReservationRequest>(async (request
     const movementRef = db.collection("inventory_movements").doc();
     tx.set(movementRef, {
       productId,
-      storeId: product.storeId,
+      storeId: storeId,
       type: "reservation",
       quantityBefore: reserved,
       quantityChanged: quantity,
@@ -86,14 +88,14 @@ export const createReservation = onCall<CreateReservationRequest>(async (request
     tx.set(reservationRef, {
       consumerId: uid,
       consumerName: consumer.fullName ?? "",
-      storeId: product.storeId,
+      storeId: storeId,
       storeName: store.name,
-      merchantId: store.merchantId,
+      merchantId: store.merchantId ?? product.merchantId ?? storeId,
       productId,
       productName: product.name,
-      productImageUrl: (product.imageUrls ?? [])[0] ?? null,
+      productImageUrl: (product.imageUrls ?? [])[0] ?? product.imageUrl ?? null,
       quantity,
-      unitPrice: product.sellingPrice ?? 0,
+      unitPrice: product.sellingPrice ?? product.price ?? 0,
       fulfillmentType,
       scheduledFor: Timestamp.fromDate(scheduledFor),
       status: "pending",
@@ -109,14 +111,15 @@ export const createReservation = onCall<CreateReservationRequest>(async (request
     return reservationRef.id;
   });
 
-  const productSnap = await db.collection("products").doc(productId).get();
-  const product = productSnap.data();
-  if (product) {
+  const productSnap2 = await db.collection("products").doc(productId).get();
+  const product2 = productSnap2.data();
+  if (product2) {
+    const merchantId2 = product2.merchantId ?? product2.storeId;
     await notifyUser({
-      userId: product.merchantId,
+      userId: merchantId2,
       type: "reservationRequest",
       title: "New reservation request",
-      message: `${consumer.fullName ?? "A consumer"} wants to reserve ${quantity} ${product.unit ?? "pc"} of ${product.name}.`,
+      message: `${consumer.fullName ?? "A consumer"} wants to reserve ${quantity} ${product2.unit ?? "pc"} of ${product2.name}.`,
       relatedRecordId: reservationId,
       relatedRecordType: "reservation",
     });

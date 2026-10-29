@@ -45,7 +45,7 @@ class _MerchantOrdersList extends ConsumerWidget {
     return SafeArea(
       child: ordersAsync.when(
         loading: () => const LoadingListView(),
-        error: (e, _) => ErrorStateView(onRetry: () => ref.invalidate(merchantOrdersProvider)),
+        error: (e, _) => ErrorStateView(message: e.toString(), onRetry: () => ref.invalidate(merchantOrdersProvider)),
         data: (orders) {
           if (orders.isEmpty) {
             return const EmptyStateView(
@@ -94,7 +94,7 @@ class _MerchantReservationsList extends ConsumerWidget {
     return SafeArea(
       child: reservationsAsync.when(
         loading: () => const LoadingListView(),
-        error: (e, _) => ErrorStateView(onRetry: () => ref.invalidate(merchantReservationsProvider)),
+        error: (e, _) => ErrorStateView(message: e.toString(), onRetry: () => ref.invalidate(merchantReservationsProvider)),
         data: (reservations) {
           if (reservations.isEmpty) {
             return const EmptyStateView(

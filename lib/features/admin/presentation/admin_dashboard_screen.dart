@@ -44,21 +44,19 @@ class AdminDashboardScreen extends ConsumerWidget {
                     crossAxisSpacing: 10,
                     childAspectRatio: 1.6,
                     children: [
-                      _StatCard(label: 'Total Users', value: '${s.totalUsers}', color: AppColors.primary, onTap: () => context.go('/admin/users')),
+                      _StatCard(label: 'Total Users', value: '${s.totalUsers}', color: AppColors.primary),
                       _StatCard(
                         label: 'Pending Verifications',
                         value: '${s.pendingVerifications}',
                         color: s.pendingVerifications > 0 ? AppColors.warning : AppColors.success,
-                        onTap: () => context.go('/admin/users'),
                       ),
                       _StatCard(label: 'Active Merchants', value: '${s.activeMerchants}', color: AppColors.info),
                       _StatCard(label: 'Active Suppliers', value: '${s.activeSuppliers}', color: AppColors.info),
-                      _StatCard(label: 'Total Orders', value: '${s.totalOrders}', color: AppColors.success, onTap: () => context.go('/admin/transactions')),
+                      _StatCard(label: 'Total Orders', value: '${s.totalOrders}', color: AppColors.success),
                       _StatCard(
                         label: 'Reported Reviews',
                         value: '${s.reportedReviews}',
                         color: s.reportedReviews > 0 ? AppColors.error : AppColors.success,
-                        onTap: () => context.push('/admin/reports-moderation'),
                       ),
                     ],
                   )),
@@ -109,26 +107,21 @@ class _StatCard extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
-  final VoidCallback? onTap;
-  const _StatCard({required this.label, required this.value, required this.color, this.onTap});
+  const _StatCard({required this.label, required this.value, required this.color});
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: color)),
-            const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: color)),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+        ],
       ),
     );
   }

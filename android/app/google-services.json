@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "29437829812",
+    "project_id": "salwanaapp-e9773",
+    "storage_bucket": "salwanaapp-e9773.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:29437829812:android:0b208d831ff5706f02ede1",
+        "android_client_info": {
+          "package_name": "com.example.salwanaapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDactfLfb49VwWk6M7pomV_ujaV-JL-lUs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -150,9 +150,12 @@ class InventoryRepository {
     return _db
         .collection('inventory_movements')
         .where('productId', isEqualTo: productId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => InventoryMovement.fromMap(d.id, d.data())).toList());
+        .map((snap) {
+          final list = snap.docs.map((d) => InventoryMovement.fromMap(d.id, d.data())).toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
   }
 }
 
@@ -161,5 +164,8 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
 });
 
 final productMovementsProvider = StreamProvider.family<List<InventoryMovement>, String>((ref, productId) {
-  return ref.watch(inventoryRepositoryProvider).watchMovements(productId);
+  return ref.watch(inventoryRepositoryProvider).watchMovements(productId).handleError((e, st) {
+    // ignore: avoid_print
+    print('productMovementsProvider error: $e');
+  });
 });
