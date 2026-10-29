@@ -1,15 +1,26 @@
 const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
+const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 
 if (admin.apps.length === 0) {
-  if (process.env.GOOGLE_SERVICE_ACCOUNT) {
-    const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-  } else {
+  try {
+    if (fs.existsSync('/etc/secrets/firebase-sa.json')) {
+      const serviceAccount = JSON.parse(fs.readFileSync('/etc/secrets/firebase-sa.json', 'utf8'));
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+    } else if (process.env.GOOGLE_SERVICE_ACCOUNT) {
+      const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+    } else {
+      admin.initializeApp();
+    }
+  } catch (e) {
+    console.error('Firebase init error:', e);
     admin.initializeApp();
   }
 }
