@@ -1,6 +1,9 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/constants/enums.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../models/cart_item.dart';
@@ -39,33 +42,50 @@ class CheckoutGroup {
 /// request and surfaces errors in a form the UI can show directly.
 class CheckoutRepository {
   final FirebaseFunctions _functions;
-  CheckoutRepository(this._functions);
+  final FirebaseAuth _auth;
+  CheckoutRepository(this._functions, this._auth);
 
   Future<List<String>> checkout(List<CheckoutGroup> groups) async {
     try {
-      final callable = _functions.httpsCallable('processCheckout');
-      final result = await callable.call<Map<String, dynamic>>({
-        'idempotencyKey': const Uuid().v4(),
-        'groups': groups
-            .map((g) => {
-                  'storeId': g.storeId,
-                  'fulfillmentType': g.fulfillmentType.name,
-                  'deliveryAddressId': g.deliveryAddressId,
-                  'deliveryAddressText': g.deliveryAddressText,
-                  'notes': g.notes,
-                  'paymentMethod': g.paymentMethod.name,
-                  'items': g.items.map((i) => {'productId': i.productId, 'quantity': i.quantity}).toList(),
-                })
-            .toList(),
-      });
-      final orderIds = (result.data['orderIds'] as List?)?.cast<String>() ?? const [];
+      final user = _auth.currentUser;
+      if (user == null) throw CheckoutException('Not signed in.');
+      final token = await user.getIdToken();
+      final uri = Uri.parse('https://salwana-api.onrender.com/processCheckout');
+      final resp = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'idempotencyKey': const Uuid().v4(),
+          'groups': groups
+              .map((g) => {
+                    'storeId': g.storeId,
+                    'fulfillmentType': g.fulfillmentType.name,
+                    'deliveryAddressId': g.deliveryAddressId,
+                    'deliveryAddressText': g.deliveryAddressText,
+                    'notes': g.notes,
+                    'paymentMethod': g.paymentMethod.name,
+                    'items': g.items.map((i) => {'productId': i.productId, 'quantity': i.quantity}).toList(),
+                  })
+              .toList(),
+        }),
+      );
+      if (resp.statusCode >= 400) {
+        final body = jsonDecode(resp.body);
+        throw CheckoutException(body['error'] ?? 'Checkout failed. Please try again.');
+      }
+      final data = jsonDecode(resp.body);
+      final orderIds = (data['orderIds'] as List?)?.cast<String>() ?? const [];
       return orderIds;
-    } on FirebaseFunctionsException catch (e) {
-      throw CheckoutException(e.message ?? 'Checkout failed. Please try again.');
+    } catch (e) {
+      if (e is CheckoutException) rethrow;
+      throw CheckoutException(e.toString());
     }
   }
 }
 
 final checkoutRepositoryProvider = Provider<CheckoutRepository>((ref) {
-  return CheckoutRepository(ref.watch(firebaseFunctionsProvider));
+  return CheckoutRepository(ref.watch(firebaseFunctionsProvider), ref.watch(firebaseAuthProvider));
 });
