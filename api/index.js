@@ -319,6 +319,30 @@ app.post('/processCheckout', verifyAuth, async (req, res) => {
         };
         tx.set(orderRef, { ...orderData, createdAt: admin.firestore.FieldValue.serverTimestamp(), updatedAt: admin.firestore.FieldValue.serverTimestamp() });
 
+        if (isCod) {
+          const receiptRef = db.collection('digital_receipts').doc(orderRef.id);
+          const receiptNumber = `SLW-${new Date().getFullYear()}-${orderRef.id.slice(0, 8).toUpperCase()}`;
+          tx.set(receiptRef, {
+            receiptNumber,
+            orderId: orderRef.id,
+            storeName: store.name || group.storeId,
+            storePhone: store.phone || '',
+            storeEmail: store.email || '',
+            consumerName: orderData.consumerName,
+            items: orderItems,
+            subtotal: orderData.subtotal,
+            deliveryFee,
+            discount: 0,
+            platformFee,
+            total,
+            paymentMethod: group.paymentMethod,
+            paymentStatus: 'successful',
+            orderStatus: 'confirmed',
+            transactionReference: orderRef.id,
+            issuedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+
         const paymentRef = db.collection('payments').doc(orderRef.id);
         tx.set(paymentRef, {
           orderId: orderRef.id,
