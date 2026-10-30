@@ -39,14 +39,25 @@ class AdminRepository {
 
   Future<void> verifyAccount({required String targetUserId, required String targetType, required bool approve, String? reason}) async {
     try {
-      await _functions.httpsCallable('verifyAccount').call<Map<String, dynamic>>({
-        'targetUserId': targetUserId,
-        'targetType': targetType,
-        'decision': approve ? 'approve' : 'reject',
-        'reason': reason,
-      });
-    } on FirebaseFunctionsException catch (e) {
-      throw AdminActionException(e.message ?? 'Could not verify account.');
+      final user = FirebaseAuth.instance.currentUser;
+      final token = await user?.getIdToken();
+      final resp = await http.post(
+        Uri.parse('https://salwanaapp.onrender.com/verifyAccount'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+        body: jsonEncode({
+          'targetUserId': targetUserId,
+          'targetType': targetType,
+          'decision': approve ? 'approve' : 'reject',
+          'reason': reason,
+        }),
+      );
+      if (resp.statusCode >= 400) {
+        final body = jsonDecode(resp.body);
+        throw AdminActionException(body['error'] ?? 'Could not verify account.');
+      }
+    } catch (e) {
+      if (e is AdminActionException) rethrow;
+      throw AdminActionException(e.toString());
     }
   }
 

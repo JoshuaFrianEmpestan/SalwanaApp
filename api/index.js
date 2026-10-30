@@ -497,5 +497,141 @@ app.post('/syncAllStores', verifyAuth, async (req, res) => {
   }
 });
 
+app.post('/verifyAccount', verifyAuth, async (req, res) => {
+  try {
+    const uid = req.uid;
+    const adminSnap = await db.collection('users').doc(uid).get();
+    if (!adminSnap.exists || adminSnap.data().role !== 'admin') return res.status(403).json({ error: 'forbidden' });
+    const { targetUserId, targetType, decision, reason } = req.body || {};
+    if (!targetUserId || !targetType || !decision) return badRequest(res, 'Missing required fields.');
+    if (decision === 'reject' && (!reason || !reason.trim())) return badRequest(res, 'A reason is required to reject an account.');
+
+    const targetRef = db.collection('users').doc(targetUserId);
+    const targetSnap = await targetRef.get();
+    if (!targetSnap.exists) return badRequest(res, 'Account not found.');
+    if (targetSnap.data().role !== targetType) return badRequest(res, 'Account role mismatch.');
+
+    const newStatus = decision === 'approve' ? 'active' : 'rejected';
+    const collection = targetType === 'merchant' ? 'stores' : 'suppliers';
+    const profileRef = db.collection(collection).doc(targetUserId);
+    const profileSnap = await profileRef.get();
+
+    await targetRef.update({
+      status: newStatus,
+      statusReason: decision === 'reject' ? reason.trim() : null,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    if (profileSnap.exists) {
+      await profileRef.update({
+        verificationStatus: newStatus,
+        verificationNote: decision === 'reject' ? reason.trim() : null,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } else {
+      // create profile if missing
+      if (targetType === 'merchant') {
+        await profileRef.set({
+          merchantId: targetUserId,
+          name: 'My Store',
+          description: '',
+          category: 'General',
+          phone: '',
+          email: '',
+          addressLine: '',
+          city: '',
+          verificationStatus: newStatus,
+          verificationNote: decision === 'reject' ? reason.trim() : null,
+          barcodeEnabled: false,
+          reservationExpirationMinutes: 120,
+          averageRating: 0,
+          ratingCount: 0,
+          planTier: 'free',
+          isOpen: true,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } else {
+        await profileRef.set({
+          userId: targetUserId,
+          companyName: 'My Company',
+          contactName: '',
+          phone: '',
+          email: '',
+          address: '',
+          suppliedCategories: [],
+          verificationStatus: newStatus,
+          verificationNote: decision === 'reject' ? reason.trim() : null,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    }
+
+    // notify user
+    await db.collection('notifications').add({
+      userId: targetUserId,
+      type: 'accountVerification',
+      title: decision === 'approve' ? 'Account verified' : 'Verification rejected',
+      message: decision === 'approve' ? 'Your account has been verified. You now have full access.' : `Your account verification was rejected: ${reason}`,
+      relatedRecordId: targetUserId,
+      relatedRecordType: 'user',
+      read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ status: newStatus });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Verification failed.' });
+  }
+});
+
+app.post('/setAccountStatus', verifyAuth, async (req, res) => {
+  try {
+    const uid = req.uid;
+    const adminSnap = await db.collection('users').doc(uid).get();
+    if (!adminSnap.exists || adminSnap.data().role !== 'admin') return res.status(403).json({ error: 'forbidden' });
+    const { targetUserId, status, reason } = req.body || {};
+    if (!targetUserId || !status) return badRequest(res, 'Missing required fields.');
+    if (!reason || !reason.trim()) return badRequest(res, 'A reason is required for this action.');
+    if (targetUserId === uid) return badRequest(res, 'You cannot change your own account status.');
+
+    const targetRef = db.collection('users').doc(targetUserId);
+    const targetSnap = await targetRef.get();
+    if (!targetSnap.exists) return badRequest(res, 'Account not found.');
+
+    const role = targetSnap.data().role;
+    const collection = role === 'supplier' ? 'suppliers' : 'stores';
+    const profileRef = db.collection(collection).doc(targetUserId);
+    const profileSnap = await profileRef.get();
+
+    await targetRef.update({
+      status,
+      statusReason: reason.trim(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    if (profileSnap.exists) {
+      await profileRef.update({
+        verificationStatus: status === 'active' ? 'active' : status,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+
+    await db.collection('notifications').add({
+      userId: targetUserId,
+      type: 'securityAlert',
+      title: 'Account status changed',
+      message: `Your account is now ${status}. Reason: ${reason.trim()}`,
+      relatedRecordId: targetUserId,
+      relatedRecordType: 'user',
+      read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ status });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Status change failed.' });
+  }
+});
+
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`API running on ${PORT}`));
