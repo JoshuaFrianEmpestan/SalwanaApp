@@ -633,5 +633,118 @@ app.post('/setAccountStatus', verifyAuth, async (req, res) => {
   }
 });
 
+app.post('/submitStoreReview', verifyAuth, async (req, res) => {
+  try {
+    const uid = req.uid;
+    const { orderId, rating, feedback } = req.body || {};
+    if (!orderId) return badRequest(res, 'Missing orderId.');
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) return badRequest(res, 'Rating must be a whole number from 1 to 5.');
+    if (!feedback || !feedback.trim()) return badRequest(res, 'Feedback is required.');
+
+    const consumerSnap = await db.collection('users').doc(uid).get();
+    const consumer = consumerSnap.exists ? consumerSnap.data() : {};
+
+    const reviewRef = db.collection('store_reviews').doc(orderId);
+
+    await db.runTransaction(async (tx) => {
+      const orderRef = db.collection('orders').doc(orderId);
+      const orderSnap = await tx.get(orderRef);
+      if (!orderSnap.exists) throw new Error('Order not found.');
+      const order = orderSnap.data();
+      if (order.consumerId !== uid) throw new Error('You can only review your own orders.');
+      if (order.status !== 'completed') throw new Error('You can only review a store after your order is completed.');
+
+      const existingSnap = await tx.get(reviewRef);
+      if (existingSnap.exists) throw new Error('You have already reviewed this order. Edit your existing review instead.');
+
+      const storeRef = db.collection('stores').doc(order.storeId);
+      const storeSnap = await tx.get(storeRef);
+      if (storeSnap.exists) {
+        const store = storeSnap.data();
+        const oldCount = store.ratingCount || 0;
+        const oldAvg = store.averageRating || 0;
+        const newCount = oldCount + 1;
+        const newAvg = (oldAvg * oldCount + rating) / newCount;
+        tx.update(storeRef, { averageRating: newAvg, ratingCount: newCount, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+      }
+
+      tx.set(reviewRef, {
+        storeId: order.storeId,
+        consumerId: uid,
+        consumerName: consumer.fullName || order.consumerName || '',
+        orderId,
+        rating,
+        feedback: feedback.trim(),
+        merchantResponse: null,
+        merchantResponseAt: null,
+        reported: false,
+        reportReason: null,
+        hidden: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      tx.update(orderRef, { reviewed: true, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    });
+
+    const orderSnap = await db.collection('orders').doc(orderId).get();
+    const order = orderSnap.exists ? orderSnap.data() : null;
+    if (order) {
+      await db.collection('notifications').add({
+        userId: order.merchantId,
+        type: 'reviewReceived',
+        title: 'New store review',
+        message: `${consumer.fullName || 'A consumer'} left a ${rating}-star review for ${order.storeName}.`,
+        relatedRecordId: orderId,
+        relatedRecordType: 'store_review',
+        read: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+
+    res.json({ reviewId: orderId });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Could not submit review.' });
+  }
+});
+
+app.post('/editStoreReview', verifyAuth, async (req, res) => {
+  try {
+    const uid = req.uid;
+    const { reviewId, rating, feedback } = req.body || {};
+    if (!reviewId) return badRequest(res, 'Missing reviewId.');
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) return badRequest(res, 'Rating must be a whole number from 1 to 5.');
+    if (!feedback || !feedback.trim()) return badRequest(res, 'Feedback is required.');
+
+    const EDIT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+    await db.runTransaction(async (tx) => {
+      const reviewRef = db.collection('store_reviews').doc(reviewId);
+      const reviewSnap = await tx.get(reviewRef);
+      if (!reviewSnap.exists) throw new Error('Review not found.');
+      const review = reviewSnap.data();
+      if (review.consumerId !== uid) throw new Error('You can only edit your own review.');
+      const createdAtMs = review.createdAt ? review.createdAt.toMillis() : Date.now();
+      if (Date.now() - createdAtMs > EDIT_WINDOW_MS) throw new Error('The edit window for this review has passed.');
+
+      const storeRef = db.collection('stores').doc(review.storeId);
+      const storeSnap = await tx.get(storeRef);
+      if (storeSnap.exists && rating !== review.rating) {
+        const store = storeSnap.data();
+        const count = store.ratingCount || 1;
+        const oldAvg = store.averageRating || 0;
+        const newAvg = (oldAvg * count - review.rating + rating) / count;
+        tx.update(storeRef, { averageRating: newAvg, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+      }
+
+      tx.update(reviewRef, { rating, feedback: feedback.trim(), updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    });
+
+    res.json({ status: 'updated' });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Could not update review.' });
+  }
+});
+
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`API running on ${PORT}`));

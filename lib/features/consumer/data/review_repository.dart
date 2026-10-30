@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../../../core/providers/firebase_providers.dart';
 import '../../../models/store_review.dart';
 
@@ -14,29 +17,46 @@ class ReviewException implements Exception {
 class ReviewRepository {
   final FirebaseFirestore _db;
   final FirebaseFunctions _functions;
-  ReviewRepository(this._db, this._functions);
+  final FirebaseAuth _auth;
+  ReviewRepository(this._db, this._functions, this._auth);
 
   Future<void> submit({required String orderId, required int rating, required String feedback}) async {
     try {
-      await _functions.httpsCallable('submitStoreReview').call<Map<String, dynamic>>({
-        'orderId': orderId,
-        'rating': rating,
-        'feedback': feedback,
-      });
-    } on FirebaseFunctionsException catch (e) {
-      throw ReviewException(e.message ?? 'Could not submit review.');
+      final user = _auth.currentUser;
+      if (user == null) throw ReviewException('Not signed in.');
+      final token = await user.getIdToken();
+      final resp = await http.post(
+        Uri.parse('https://salwanaapp.onrender.com/submitStoreReview'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+        body: jsonEncode({'orderId': orderId, 'rating': rating, 'feedback': feedback}),
+      );
+      if (resp.statusCode >= 400) {
+        final body = jsonDecode(resp.body);
+        throw ReviewException(body['error'] ?? 'Could not submit review.');
+      }
+    } catch (e) {
+      if (e is ReviewException) rethrow;
+      throw ReviewException(e.toString());
     }
   }
 
   Future<void> edit({required String reviewId, required int rating, required String feedback}) async {
     try {
-      await _functions.httpsCallable('editStoreReview').call<Map<String, dynamic>>({
-        'reviewId': reviewId,
-        'rating': rating,
-        'feedback': feedback,
-      });
-    } on FirebaseFunctionsException catch (e) {
-      throw ReviewException(e.message ?? 'Could not update review.');
+      final user = _auth.currentUser;
+      if (user == null) throw ReviewException('Not signed in.');
+      final token = await user.getIdToken();
+      final resp = await http.post(
+        Uri.parse('https://salwanaapp.onrender.com/editStoreReview'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+        body: jsonEncode({'reviewId': reviewId, 'rating': rating, 'feedback': feedback}),
+      );
+      if (resp.statusCode >= 400) {
+        final body = jsonDecode(resp.body);
+        throw ReviewException(body['error'] ?? 'Could not update review.');
+      }
+    } catch (e) {
+      if (e is ReviewException) rethrow;
+      throw ReviewException(e.toString());
     }
   }
 
@@ -80,7 +100,7 @@ class ReviewRepository {
 }
 
 final reviewRepositoryProvider = Provider<ReviewRepository>((ref) {
-  return ReviewRepository(ref.watch(firestoreProvider), ref.watch(firebaseFunctionsProvider));
+  return ReviewRepository(ref.watch(firestoreProvider), ref.watch(firebaseFunctionsProvider), ref.watch(firebaseAuthProvider));
 });
 
 final storeReviewsProvider = StreamProvider.family<List<StoreReview>, String>((ref, storeId) {
