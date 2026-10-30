@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/firebase_providers.dart';
@@ -12,12 +13,34 @@ class StoreRepository {
   DocumentReference<Map<String, dynamic>> _ref(String merchantId) => _db.collection('stores').doc(merchantId);
 
   Stream<Store?> watchStore(String merchantId) {
-    return _ref(merchantId).snapshots().map((doc) => doc.exists ? Store.fromMap(doc.id, doc.data()!) : null);
+    final controller = StreamController<Store?>();
+    _ref(merchantId).get().then((doc) {
+      if (doc.exists) {
+        _ref(merchantId).snapshots().listen(
+          (d) => controller.add(d.exists ? Store.fromMap(d.id, d.data()!) : null),
+          onError: controller.addError,
+        );
+      } else {
+        _db
+            .collection('stores')
+            .where('merchantId', isEqualTo: merchantId)
+            .limit(1)
+            .snapshots()
+            .listen(
+          (snap) => controller.add(snap.docs.isEmpty ? null : Store.fromMap(snap.docs.first.id, snap.docs.first.data())),
+          onError: controller.addError,
+        );
+      }
+    }).catchError(controller.addError);
+    return controller.stream;
   }
 
   Future<Store?> getStore(String merchantId) async {
     final doc = await _ref(merchantId).get();
-    return doc.exists ? Store.fromMap(doc.id, doc.data()!) : null;
+    if (doc.exists) return Store.fromMap(doc.id, doc.data()!);
+    final snap = await _db.collection('stores').where('merchantId', isEqualTo: merchantId).limit(1).get();
+    if (snap.docs.isEmpty) return null;
+    return Store.fromMap(snap.docs.first.id, snap.docs.first.data());
   }
 
   Future<void> updateStore(String merchantId, Map<String, dynamic> patch) async {
