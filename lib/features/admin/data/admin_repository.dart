@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import '../../../core/providers/firebase_providers.dart';
 import '../../../models/app_user.dart';
 import '../../../models/application_settings.dart';
@@ -46,6 +48,18 @@ class AdminRepository {
     } on FirebaseFunctionsException catch (e) {
       throw AdminActionException(e.message ?? 'Could not verify account.');
     }
+  }
+
+  Future<void> syncAllStores() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final token = await user.getIdToken();
+    try {
+      await http.post(
+        Uri.parse('https://salwanaapp.onrender.com/syncAllStores'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+      );
+    } catch (_) {}
   }
 
   Future<void> setAccountStatus({required String targetUserId, required String status, required String reason}) async {

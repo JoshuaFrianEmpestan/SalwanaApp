@@ -7,9 +7,11 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/notification_bell.dart';
 import '../../../core/widgets/state_views.dart';
 import '../data/admin_stats_repository.dart';
+import '../data/admin_repository.dart';
 
-final _adminStatsProvider = FutureProvider.autoDispose((ref) {
-  return ref.watch(adminStatsRepositoryProvider).computeStats();
+final _adminStatsProvider = FutureProvider.autoDispose((ref) async {
+  await ref.read(adminRepositoryProvider).syncAllStores();
+  return ref.read(adminStatsRepositoryProvider).computeStats();
 });
 
 class AdminDashboardScreen extends ConsumerWidget {
