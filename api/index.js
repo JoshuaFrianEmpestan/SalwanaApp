@@ -426,5 +426,76 @@ app.post('/syncStore', verifyAuth, async (req, res) => {
   }
 });
 
+app.post('/syncAllStores', verifyAuth, async (req, res) => {
+  try {
+    const adminSnap = await db.collection('users').doc(req.uid).get();
+    if (!adminSnap.exists || adminSnap.data().role !== 'admin') return res.status(403).json({ error: 'forbidden' });
+    const usersSnap = await db.collection('users').where('role', 'in', ['merchant', 'supplier']).get();
+    let synced = 0;
+    for (const userDoc of usersSnap.docs) {
+      const user = userDoc.data();
+      const uid = userDoc.id;
+      const isSupplier = user.role === 'supplier';
+      const collection = isSupplier ? 'suppliers' : 'stores';
+      const field = isSupplier ? 'userId' : 'merchantId';
+      const newStatus = user.status === 'active' ? 'active' : 'pendingVerification';
+
+      const refs = new Set();
+      const byId = await db.collection(collection).doc(uid).get();
+      if (byId.exists) refs.add(byId.ref);
+      const byField = await db.collection(collection).where(field, '==', uid).get();
+      byField.docs.forEach((d) => refs.add(d.ref));
+
+      if (refs.size === 0) {
+        const ref = db.collection(collection).doc(uid);
+        if (isSupplier) {
+          await ref.set({
+            userId: uid,
+            companyName: user.fullName || 'My Company',
+            contactName: user.fullName || '',
+            phone: user.phone || '',
+            email: user.email || '',
+            address: '',
+            suppliedCategories: [],
+            verificationStatus: newStatus,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        } else {
+          await ref.set({
+            merchantId: uid,
+            name: 'My Store',
+            description: '',
+            category: 'General',
+            phone: user.phone || '',
+            email: user.email || '',
+            addressLine: '',
+            city: '',
+            verificationStatus: newStatus,
+            barcodeEnabled: false,
+            reservationExpirationMinutes: 120,
+            averageRating: 0,
+            ratingCount: 0,
+            planTier: 'free',
+            isOpen: true,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+      } else {
+        const batch = db.batch();
+        refs.forEach((r) => {
+          batch.update(r, { verificationStatus: newStatus, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+        });
+        await batch.commit();
+      }
+      synced++;
+    }
+    res.json({ ok: true, synced });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Sync failed.' });
+  }
+});
+
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`API running on ${PORT}`));
