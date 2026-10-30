@@ -8,9 +8,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'core/providers/app_prefs_providers.dart';
+import 'core/providers/theme_provider.dart';
 import 'firebase_options.dart';
 
 const _onboardSeenKey = 'salwana_onboarding_seen';
+const _themeModeKey = 'theme_mode';
 
 /// Run with `--dart-define=USE_FIREBASE_EMULATOR=true` to point the app at
 /// the local Firebase Emulator Suite (`firebase emulators:start`) instead
@@ -51,10 +53,14 @@ Future<void> main() async {
 
   final prefs = await SharedPreferences.getInstance();
   final onboardingSeen = prefs.getBool(_onboardSeenKey) ?? false;
+  final savedThemeMode = themeModeFromName(prefs.getString(_themeModeKey));
 
   runApp(
     ProviderScope(
-      overrides: [onboardingSeenProvider.overrideWith((ref) => onboardingSeen)],
+      overrides: [
+        onboardingSeenProvider.overrideWith((ref) => onboardingSeen),
+        themeModeProvider.overrideWith((ref) => ThemeModeNotifier(prefs, savedThemeMode)),
+      ],
       child: const SalwanaApp(),
     ),
   );

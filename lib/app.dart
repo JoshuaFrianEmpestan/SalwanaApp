@@ -5,6 +5,7 @@ import 'core/providers/firebase_providers.dart';
 import 'core/router/app_router.dart';
 import 'core/services/push_notification_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/providers/theme_provider.dart';
 import 'core/widgets/offline_banner.dart';
 
 /// Lets the foreground-message listener show a SnackBar without needing a
@@ -40,6 +41,7 @@ class _SalwanaAppState extends ConsumerState<SalwanaApp> {
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     ref.listen(appUserProvider, (previous, next) {
       final user = next.valueOrNull;
@@ -55,6 +57,8 @@ class _SalwanaAppState extends ConsumerState<SalwanaApp> {
       title: 'Salwana',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: themeMode,
       routerConfig: router,
       scaffoldMessengerKey: scaffoldMessengerKey,
       builder: (context, child) => OfflineBanner(child: child ?? const SizedBox.shrink()),

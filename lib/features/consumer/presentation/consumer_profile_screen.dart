@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/providers/theme_provider.dart';
 import '../../../core/widgets/account_header_card.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/profile_menu_tile.dart';
@@ -50,6 +51,19 @@ class ConsumerProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 const Text('Preferences', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
                 ProfileMenuTile(icon: Icons.lock_outline_rounded, label: 'Security', onTap: () => context.push('/consumer/security')),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final mode = ref.watch(themeModeProvider);
+                    final isDark = mode == ThemeMode.dark;
+                    return SwitchListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                      secondary: Icon(isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded, color: AppColors.textSecondary, size: 22),
+                      title: const Text('Dark Mode', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                      value: isDark,
+                      onChanged: (_) => ref.read(themeModeProvider.notifier).toggle(),
+                    );
+                  },
+                ),
                 const SizedBox(height: 12),
                 ProfileMenuTile(
                   icon: Icons.logout_rounded,
