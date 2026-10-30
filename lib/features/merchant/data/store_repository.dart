@@ -13,62 +13,7 @@ class StoreRepository {
   DocumentReference<Map<String, dynamic>> _ref(String merchantId) => _db.collection('stores').doc(merchantId);
 
   Stream<Store?> watchStore(String merchantId) {
-    final controller = StreamController<Store?>();
-    _ref(merchantId).get().then((doc) async {
-      if (doc.exists) {
-        final userDoc = await _db.collection('users').doc(merchantId).get();
-        final userStatus = userDoc.data()?['status'];
-        if (userStatus == 'active' && doc.data()?['verificationStatus'] != 'active') {
-          await _ref(merchantId).update({'verificationStatus': 'active', 'updatedAt': FieldValue.serverTimestamp()});
-        }
-        _ref(merchantId).snapshots().listen(
-          (d) => controller.add(d.exists ? Store.fromMap(d.id, d.data()!) : null),
-          onError: controller.addError,
-        );
-      } else {
-        final snap = await _db.collection('stores').where('merchantId', isEqualTo: merchantId).limit(1).get();
-        if (snap.docs.isNotEmpty) {
-          final storeDoc = snap.docs.first;
-          final userDoc = await _db.collection('users').doc(merchantId).get();
-          final userStatus = userDoc.data()?['status'];
-          if (userStatus == 'active' && storeDoc.data()['verificationStatus'] != 'active') {
-            await _db.collection('stores').doc(storeDoc.id).update({'verificationStatus': 'active', 'updatedAt': FieldValue.serverTimestamp()});
-          }
-          _db.collection('stores').doc(storeDoc.id).snapshots().listen(
-            (d) => controller.add(d.exists ? Store.fromMap(d.id, d.data()!) : null),
-            onError: controller.addError,
-          );
-        } else {
-          final userDoc = await _db.collection('users').doc(merchantId).get();
-          final userStatus = userDoc.data()?['status'];
-          final storeStatus = userStatus == 'active' ? 'active' : 'pendingVerification';
-          await _ref(merchantId).set({
-            'merchantId': merchantId,
-            'name': 'My Store',
-            'description': '',
-            'category': 'General',
-            'phone': '',
-            'email': '',
-            'addressLine': '',
-            'city': '',
-            'verificationStatus': storeStatus,
-            'barcodeEnabled': false,
-            'reservationExpirationMinutes': 120,
-            'averageRating': 0,
-            'ratingCount': 0,
-            'planTier': 'free',
-            'isOpen': true,
-            'createdAt': FieldValue.serverTimestamp(),
-            'updatedAt': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
-          _ref(merchantId).snapshots().listen(
-            (d) => controller.add(d.exists ? Store.fromMap(d.id, d.data()!) : null),
-            onError: controller.addError,
-          );
-        }
-      }
-    }).catchError(controller.addError);
-    return controller.stream;
+    return _ref(merchantId).snapshots().map((doc) => doc.exists ? Store.fromMap(doc.id, doc.data()!) : null);
   }
 
   Future<Store?> getStore(String merchantId) async {
