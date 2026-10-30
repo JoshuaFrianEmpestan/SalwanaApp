@@ -1,4 +1,3 @@
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:convert';
@@ -41,9 +40,8 @@ class CheckoutGroup {
 /// stock validation happens server-side (§20); this just shapes the
 /// request and surfaces errors in a form the UI can show directly.
 class CheckoutRepository {
-  final FirebaseFunctions _functions;
   final FirebaseAuth _auth;
-  CheckoutRepository(this._functions, this._auth);
+  CheckoutRepository(this._auth);
 
   Future<List<String>> checkout(List<CheckoutGroup> groups) async {
     try {
@@ -87,5 +85,5 @@ class CheckoutRepository {
 }
 
 final checkoutRepositoryProvider = Provider<CheckoutRepository>((ref) {
-  return CheckoutRepository(ref.watch(firebaseFunctionsProvider), ref.watch(firebaseAuthProvider));
+  return CheckoutRepository(ref.watch(firebaseAuthProvider));
 });

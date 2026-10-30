@@ -81,8 +81,21 @@ app.post('/createReservation', verifyAuth, async (req, res) => {
       if (!storeId) throw new Error('Store not found.');
       const storeRef = db.collection('stores').doc(storeId);
       const storeSnap = await tx.get(storeRef);
-      if (!storeSnap.exists) throw new Error('Store not found.');
-      const store = storeSnap.data();
+      let store;
+      if (!storeSnap.exists) {
+        const userSnap = await tx.get(db.collection('users').doc(storeId));
+        if (!userSnap.exists) throw new Error('Store not found.');
+        const userData = userSnap.data();
+        store = {
+          name: userData.storeName || userData.fullName || userData.businessName || 'Store',
+          merchantId: storeId,
+          verificationStatus: 'active',
+          isOpen: true,
+          reservationExpirationMinutes: 120,
+        };
+      } else {
+        store = storeSnap.data();
+      }
       if (store.verificationStatus !== 'active') throw new Error(`${store.name} is not currently available.`);
       if (store.isOpen === false) throw new Error(`${store.name} is currently closed.`);
 
@@ -195,8 +208,21 @@ app.post('/processCheckout', verifyAuth, async (req, res) => {
       const orderId = await db.runTransaction(async (tx) => {
         const storeRef = db.collection('stores').doc(group.storeId);
         const storeSnap = await tx.get(storeRef);
-        if (!storeSnap.exists) throw new Error(`Store ${group.storeId} not found.`);
-        const store = storeSnap.data();
+        let store;
+        if (!storeSnap.exists) {
+          const userSnap = await tx.get(db.collection('users').doc(group.storeId));
+          if (!userSnap.exists) throw new Error(`Store ${group.storeId} not found.`);
+          const userData = userSnap.data();
+          store = {
+            name: userData.storeName || userData.fullName || userData.businessName || 'Store',
+            merchantId: group.storeId,
+            verificationStatus: 'active',
+            isOpen: true,
+            reservationExpirationMinutes: 120,
+          };
+        } else {
+          store = storeSnap.data();
+        }
         if (store.verificationStatus !== 'active') throw new Error(`${store.name} is not currently available.`);
         if (store.isOpen === false) throw new Error(`${store.name} is currently closed.`);
 
