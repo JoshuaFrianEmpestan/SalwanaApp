@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:convert';
@@ -18,10 +17,9 @@ class ReservationException implements Exception {
 /// Client for the reservation Cloud Functions plus the read-side streams
 /// consumers/merchants use to watch their own reservations (§4).
 class ReservationRepository {
-  final FirebaseFunctions _functions;
   final FirebaseFirestore _db;
   final FirebaseAuth _auth;
-  ReservationRepository(this._functions, this._db, this._auth);
+  ReservationRepository(this._db, this._auth);
 
   Future<String> createReservation({
     required String productId,
@@ -65,13 +63,21 @@ class ReservationRepository {
 
   Future<void> _updateStatus(String reservationId, String action, {String? reason}) async {
     try {
-      await _functions.httpsCallable('updateReservationStatus').call<Map<String, dynamic>>({
-        'reservationId': reservationId,
-        'action': action,
-        'reason': reason,
-      });
-    } on FirebaseFunctionsException catch (e) {
-      throw ReservationException(e.message ?? 'Could not update this reservation.');
+      final user = _auth.currentUser;
+      if (user == null) throw ReservationException('Not signed in.');
+      final token = await user.getIdToken();
+      final resp = await http.post(
+        Uri.parse('https://salwanaapp.onrender.com/updateReservationStatus'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+        body: jsonEncode({'reservationId': reservationId, 'action': action, 'reason': reason}),
+      );
+      if (resp.statusCode >= 400) {
+        final body = jsonDecode(resp.body);
+        throw ReservationException(body['error'] ?? 'Could not update this reservation.');
+      }
+    } catch (e) {
+      if (e is ReservationException) rethrow;
+      throw ReservationException(e.toString());
     }
   }
 
@@ -110,7 +116,7 @@ class ReservationRepository {
 }
 
 final reservationRepositoryProvider = Provider<ReservationRepository>((ref) {
-  return ReservationRepository(ref.watch(firebaseFunctionsProvider), ref.watch(firestoreProvider), ref.watch(firebaseAuthProvider));
+  return ReservationRepository(ref.watch(firestoreProvider), ref.watch(firebaseAuthProvider));
 });
 
 final consumerReservationsProvider = StreamProvider<List<Reservation>>((ref) {

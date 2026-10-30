@@ -895,4 +895,136 @@ app.post('/updateOrderStatus', verifyAuth, async (req, res) => {
   }
 });
 
+const RELEASING_ACTIONS = new Set(['reject', 'cancel']);
+const RES_MERCHANT_ACTIONS = new Set(['approve', 'reject', 'preparing', 'readyForPickup', 'outForDelivery', 'completed']);
+const RES_CONSUMER_ACTIONS = new Set(['cancel']);
+const RES_NEXT_STATUS = {
+  approve: 'approved',
+  reject: 'rejected',
+  preparing: 'preparing',
+  readyForPickup: 'readyForPickup',
+  outForDelivery: 'outForDelivery',
+  completed: 'completed',
+  cancel: 'cancelled',
+};
+const RES_ALLOWED_FROM = {
+  approve: ['pending'],
+  reject: ['pending'],
+  preparing: ['approved'],
+  readyForPickup: ['preparing'],
+  outForDelivery: ['preparing'],
+  completed: ['readyForPickup', 'outForDelivery'],
+  cancel: ['pending', 'approved', 'preparing'],
+};
+
+app.post('/updateReservationStatus', verifyAuth, async (req, res) => {
+  try {
+    const uid = req.uid;
+    const { reservationId, action, reason } = req.body || {};
+    if (!reservationId || !action) return badRequest(res, 'Missing reservationId or action.');
+    if (!Object.prototype.hasOwnProperty.call(RES_NEXT_STATUS, action)) return badRequest(res, 'Invalid action.');
+
+    await db.runTransaction(async (tx) => {
+      const reservationRef = db.collection('reservations').doc(reservationId);
+      const reservationSnap = await tx.get(reservationRef);
+      if (!reservationSnap.exists) throw new Error('Reservation not found.');
+      const reservation = reservationSnap.data();
+
+      const isMerchant = RES_MERCHANT_ACTIONS.has(action) && reservation.merchantId === uid;
+      const isConsumer = RES_CONSUMER_ACTIONS.has(action) && reservation.consumerId === uid;
+      if (!isMerchant && !isConsumer) throw new Error('You are not authorized to perform this action.');
+
+      if (!RES_ALLOWED_FROM[action].includes(reservation.status)) {
+        throw new Error(`Cannot ${action} a reservation that is ${reservation.status}.`);
+      }
+
+      const newStatus = RES_NEXT_STATUS[action];
+      const productRef = db.collection('products').doc(reservation.productId);
+      const productSnap = await tx.get(productRef);
+
+      if ((RELEASING_ACTIONS.has(action) || action === 'completed') && productSnap.exists) {
+        const product = productSnap.data();
+        const reserved = product.reservedStock || 0;
+        const current = product.currentStock || 0;
+
+        if (RELEASING_ACTIONS.has(action)) {
+          const newReserved = Math.max(0, reserved - reservation.quantity);
+          tx.update(productRef, { reservedStock: newReserved, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+          const movementRef = db.collection('inventory_movements').doc();
+          tx.set(movementRef, {
+            productId: reservation.productId,
+            storeId: reservation.storeId,
+            type: 'reservationReleased',
+            quantityBefore: reserved,
+            quantityChanged: -reservation.quantity,
+            quantityAfter: newReserved,
+            reason: action === 'reject' ? `Reservation rejected: ${reason || 'no reason given'}` : 'Reservation cancelled',
+            relatedOrderId: null,
+            relatedReservationId: reservationId,
+            relatedDeliveryId: null,
+            performedByUserId: uid,
+            performedByName: reservation.consumerName || reservation.storeName || '',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        } else if (action === 'completed') {
+          const newReserved = Math.max(0, reserved - reservation.quantity);
+          const newCurrent = Math.max(0, current - reservation.quantity);
+          tx.update(productRef, {
+            reservedStock: newReserved,
+            currentStock: newCurrent,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+          const movementRef = db.collection('inventory_movements').doc();
+          tx.set(movementRef, {
+            productId: reservation.productId,
+            storeId: reservation.storeId,
+            type: 'sale',
+            quantityBefore: current,
+            quantityChanged: -reservation.quantity,
+            quantityAfter: newCurrent,
+            reason: 'Reservation completed — claimed/delivered',
+            relatedOrderId: null,
+            relatedReservationId: reservationId,
+            relatedDeliveryId: null,
+            performedByUserId: uid,
+            performedByName: reservation.consumerName || '',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+      }
+
+      tx.update(reservationRef, {
+        status: newStatus,
+        rejectionReason: action === 'reject' ? (reason || null) : (reservation.rejectionReason || null),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    });
+
+    const reservationSnap = await db.collection('reservations').doc(reservationId).get();
+    const reservation = reservationSnap.exists ? reservationSnap.data() : null;
+    if (reservation) {
+      const notifyConsumerTypes = { approve: 'reservationApproved', reject: 'reservationRejected' };
+      const notifType = notifyConsumerTypes[action];
+      if (notifType) {
+        await db.collection('notifications').add({
+          userId: reservation.consumerId,
+          type: notifType,
+          title: action === 'approve' ? 'Reservation approved' : 'Reservation rejected',
+          message: action === 'approve'
+            ? `Your reservation for ${reservation.productName} at ${reservation.storeName} was approved.`
+            : `Your reservation for ${reservation.productName} was rejected${reason ? `: ${reason}` : '.'}`,
+          relatedRecordId: reservationId,
+          relatedRecordType: 'reservation',
+          read: false,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    }
+
+    res.json({ status: RES_NEXT_STATUS[action] });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Could not update reservation.' });
+  }
+});
+
 const PORT = process.env.PORT || 8080;
