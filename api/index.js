@@ -358,5 +358,61 @@ app.post('/processCheckout', verifyAuth, async (req, res) => {
   }
 });
 
+app.post('/syncStore', verifyAuth, async (req, res) => {
+  try {
+    const uid = req.uid;
+    const userSnap = await db.collection('users').doc(uid).get();
+    if (!userSnap.exists) return badRequest(res, 'User not found.');
+    const user = userSnap.data();
+    if (user.role !== 'merchant' && user.role !== 'supplier') return badRequest(res, 'Not a merchant/supplier account.');
+    const collection = user.role === 'supplier' ? 'suppliers' : 'stores';
+    const ref = db.collection(collection).doc(uid);
+    const snap = await ref.get();
+    const newStatus = user.status === 'active' ? 'active' : 'pendingVerification';
+    const isSupplier = user.role === 'supplier';
+    if (!snap.exists) {
+      if (isSupplier) {
+        await ref.set({
+          userId: uid,
+          companyName: user.fullName || 'My Company',
+          contactName: user.fullName || '',
+          phone: user.phone || '',
+          email: user.email || '',
+          address: '',
+          suppliedCategories: [],
+          verificationStatus: newStatus,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } else {
+        await ref.set({
+          merchantId: uid,
+          name: 'My Store',
+          description: '',
+          category: 'General',
+          phone: user.phone || '',
+          email: user.email || '',
+          addressLine: '',
+          city: '',
+          verificationStatus: newStatus,
+          barcodeEnabled: false,
+          reservationExpirationMinutes: 120,
+          averageRating: 0,
+          ratingCount: 0,
+          planTier: 'free',
+          isOpen: true,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    } else {
+      await ref.update({ verificationStatus: newStatus, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    }
+    res.json({ ok: true, status: newStatus });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Sync failed.' });
+  }
+});
+
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`API running on ${PORT}`));

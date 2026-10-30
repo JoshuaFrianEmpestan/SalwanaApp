@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../models/store.dart';
 
@@ -8,7 +11,8 @@ import '../../../models/store.dart';
 /// so lookups never need a query — just `stores/{merchantId}`.
 class StoreRepository {
   final FirebaseFirestore _db;
-  StoreRepository(this._db);
+  final FirebaseAuth _auth;
+  StoreRepository(this._db, this._auth);
 
   DocumentReference<Map<String, dynamic>> _ref(String merchantId) => _db.collection('stores').doc(merchantId);
 
@@ -16,6 +20,17 @@ class StoreRepository {
     return _ref(merchantId).snapshots().map((doc) => doc.exists ? Store.fromMap(doc.id, doc.data()!) : null);
   }
 
+  Future<void> syncStore() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    final token = await user.getIdToken();
+    try {
+      await http.post(
+        Uri.parse('https://salwanaapp.onrender.com/syncStore'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+      );
+    } catch (_) {}
+  }
   Future<Store?> getStore(String merchantId) async {
     final doc = await _ref(merchantId).get();
     if (doc.exists) {
@@ -74,7 +89,7 @@ class StoreRepository {
 }
 
 final storeRepositoryProvider = Provider<StoreRepository>((ref) {
-  return StoreRepository(ref.watch(firestoreProvider));
+  return StoreRepository(ref.watch(firestoreProvider), ref.watch(firebaseAuthProvider));
 });
 
 /// Live stream of the signed-in merchant's own store.

@@ -98,7 +98,7 @@ class _StoreProfileScreenState extends ConsumerState<StoreProfileScreen> {
             if (user == null) return const SizedBox.shrink();
             if (store == null) {
               return FutureBuilder<Store?>(
-                future: ref.read(storeRepositoryProvider).getStore(user.id),
+                future: ref.read(storeRepositoryProvider).syncStore().then((_) => ref.read(storeRepositoryProvider).getStore(user.id)),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState != ConnectionState.done) {
                     return const LoadingListView();
