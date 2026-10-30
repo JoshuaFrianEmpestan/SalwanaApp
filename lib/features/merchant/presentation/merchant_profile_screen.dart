@@ -42,7 +42,6 @@ class MerchantProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 const Text('Store', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
                 ProfileMenuTile(icon: Icons.storefront_outlined, label: 'Store Profile', onTap: () => context.push('/merchant/store')),
-                ProfileMenuTile(icon: Icons.category_outlined, label: 'Products & Categories', onTap: () => context.go('/merchant/inventory')),
                 ProfileMenuTile(icon: Icons.star_border_rounded, label: 'Store Reviews', onTap: () => context.push('/merchant/reviews')),
                 const SizedBox(height: 12),
                 const Text('Business', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
