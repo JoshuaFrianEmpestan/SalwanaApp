@@ -95,11 +95,24 @@ class _StoreProfileScreenState extends ConsumerState<StoreProfileScreen> {
           loading: () => const LoadingListView(),
           error: (e, _) => ErrorStateView(onRetry: () => ref.invalidate(myStoreProvider)),
           data: (store) {
-            if (store == null || user == null) {
-              return const EmptyStateView(
-                icon: Icons.storefront_outlined,
-                title: 'Store not found',
-                message: 'We could not find a store linked to your account.',
+            if (user == null) return const SizedBox.shrink();
+            if (store == null) {
+              return FutureBuilder<Store?>(
+                future: ref.read(storeRepositoryProvider).getStore(user.id),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return const LoadingListView();
+                  }
+                  if (snapshot.data == null) {
+                    return const EmptyStateView(
+                      icon: Icons.storefront_outlined,
+                      title: 'Store not found',
+                      message: 'Could not create a store for this account.',
+                    );
+                  }
+                  WidgetsBinding.instance.addPostFrameCallback((_) => ref.invalidate(myStoreProvider));
+                  return const LoadingListView();
+                },
               );
             }
             _seed(store);
