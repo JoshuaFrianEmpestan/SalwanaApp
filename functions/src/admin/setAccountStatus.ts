@@ -29,11 +29,23 @@ export const setAccountStatus = onCall<SetAccountStatusRequest>(async (request) 
   const targetSnap = await targetRef.get();
   if (!targetSnap.exists) badRequest("Account not found.");
 
+  const profileCollection = targetSnap.data()?.role === "supplier" ? "suppliers" : "stores";
+  const profileRef = db.collection(profileCollection).doc(targetUserId);
+  const profileSnap = await profileRef.get();
+
   await targetRef.update({
     status,
     statusReason: reason.trim(),
     updatedAt: FieldValue.serverTimestamp(),
   });
+
+  if (profileSnap.exists) {
+    await profileRef.update({
+      verificationStatus: status === "active" ? "active" : status,
+      verificationNote: null,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  }
 
   await writeAuditLog({
     actorUserId: uid,
