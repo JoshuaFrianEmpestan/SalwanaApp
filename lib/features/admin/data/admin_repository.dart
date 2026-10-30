@@ -37,27 +37,14 @@ class AdminRepository {
 
   Future<void> verifyAccount({required String targetUserId, required String targetType, required bool approve, String? reason}) async {
     try {
-      final newStatus = approve ? 'active' : 'rejected';
-      final batch = _db.batch();
-      final userRef = _db.collection('users').doc(targetUserId);
-      batch.update(userRef, {
-        'status': newStatus,
-        'statusReason': approve ? null : reason?.trim(),
-        'updatedAt': FieldValue.serverTimestamp(),
+      await _functions.httpsCallable('verifyAccount').call<Map<String, dynamic>>({
+        'targetUserId': targetUserId,
+        'targetType': targetType,
+        'decision': approve ? 'approve' : 'reject',
+        'reason': reason,
       });
-      final profileCollection = targetType == 'merchant' ? 'stores' : 'suppliers';
-      final profileRef = _db.collection(profileCollection).doc(targetUserId);
-      final profileSnap = await profileRef.get();
-      if (profileSnap.exists) {
-        batch.update(profileRef, {
-          'verificationStatus': newStatus,
-          'verificationNote': approve ? null : reason?.trim(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      }
-      await batch.commit();
-    } catch (e) {
-      throw AdminActionException(e.toString());
+    } on FirebaseFunctionsException catch (e) {
+      throw AdminActionException(e.message ?? 'Could not verify account.');
     }
   }
 

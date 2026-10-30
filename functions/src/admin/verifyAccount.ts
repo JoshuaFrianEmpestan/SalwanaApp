@@ -52,6 +52,45 @@ export const verifyAccount = onCall<VerifyAccountRequest>(async (request) => {
         verificationNote: decision === "reject" ? reason!.trim() : null,
         updatedAt: FieldValue.serverTimestamp(),
       });
+    } else {
+      // Ensure a profile document exists so verification state is persisted
+      // even for accounts that never completed onboarding.
+      if (targetType === "merchant") {
+        tx.set(profileRef, {
+          merchantId: targetUserId,
+          name: "My Store",
+          description: "",
+          category: "General",
+          phone: "",
+          email: "",
+          addressLine: "",
+          city: "",
+          verificationStatus: newStatus,
+          verificationNote: decision === "reject" ? reason!.trim() : null,
+          barcodeEnabled: false,
+          reservationExpirationMinutes: 120,
+          averageRating: 0,
+          ratingCount: 0,
+          planTier: "free",
+          isOpen: true,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      } else {
+        tx.set(profileRef, {
+          userId: targetUserId,
+          companyName: "My Company",
+          contactName: "",
+          phone: "",
+          email: "",
+          address: "",
+          suppliedCategories: [],
+          verificationStatus: newStatus,
+          verificationNote: decision === "reject" ? reason!.trim() : null,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      }
     }
   });
 
