@@ -84,8 +84,7 @@ app.post('/createReservation', verifyAuth, async (req, res) => {
       let store;
       if (!storeSnap.exists) {
         const userSnap = await tx.get(db.collection('users').doc(storeId));
-        if (!userSnap.exists) throw new Error('Store not found.');
-        const userData = userSnap.data();
+        const userData = userSnap.exists ? userSnap.data() : {};
         store = {
           name: userData.storeName || userData.fullName || userData.businessName || 'Store',
           merchantId: storeId,
@@ -211,8 +210,7 @@ app.post('/processCheckout', verifyAuth, async (req, res) => {
         let store;
         if (!storeSnap.exists) {
           const userSnap = await tx.get(db.collection('users').doc(group.storeId));
-          if (!userSnap.exists) throw new Error(`Store ${group.storeId} not found.`);
-          const userData = userSnap.data();
+          const userData = userSnap.exists ? userSnap.data() : {};
           store = {
             name: userData.storeName || userData.fullName || userData.businessName || 'Store',
             merchantId: group.storeId,
