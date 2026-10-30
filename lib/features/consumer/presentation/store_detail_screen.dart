@@ -2,12 +2,15 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/constants/enums.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/consumer_product_card.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../merchant/data/store_repository.dart';
 import '../data/catalog_repository.dart';
+import '../data/order_repository.dart';
 
 class StoreDetailScreen extends ConsumerWidget {
   final String storeId;
@@ -97,6 +100,20 @@ class StoreDetailScreen extends ConsumerWidget {
                           onPressed: () => context.push('/consumer/stores/$storeId/reviews'),
                           icon: const Icon(Icons.star_outline_rounded, size: 18),
                           label: Text(store.ratingCount > 0 ? 'See all ${store.ratingCount} reviews' : 'See reviews'),
+                        ),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            final orders = ref.read(consumerOrdersProvider).valueOrNull ?? const [];
+                            final candidates = orders.where((o) => o.storeId == storeId && o.status == OrderStatus.completed && !o.reviewed).toList();
+                            if (candidates.isEmpty) {
+                              if (context.mounted) showAppSnackBar(context, 'Complete an order from this store before reviewing.', isError: true);
+                              return;
+                            }
+                            if (context.mounted) context.push('/consumer/orders/${candidates.first.id}/review');
+                          },
+                          icon: const Icon(Icons.rate_review_outlined, size: 18),
+                          label: const Text('Write a Review'),
                         ),
                         const SizedBox(height: 20),
                         const Text('Products', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
