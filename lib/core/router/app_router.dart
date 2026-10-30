@@ -346,7 +346,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/consumer/products/:id/reserve',
-        builder: (context, state) => ReserveProductScreen(productId: state.pathParameters['id']!),
+        builder: (context, state) => ReserveProductScreen(
+          productId: state.pathParameters['id']!,
+          initialQuantity: int.tryParse(state.uri.queryParameters['qty'] ?? '') ?? 1,
+        ),
       ),
       GoRoute(
         path: '/consumer/reservations/:id',

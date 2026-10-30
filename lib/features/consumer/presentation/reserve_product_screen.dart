@@ -13,7 +13,8 @@ import '../data/reservation_repository.dart';
 
 class ReserveProductScreen extends ConsumerStatefulWidget {
   final String productId;
-  const ReserveProductScreen({super.key, required this.productId});
+  final int initialQuantity;
+  const ReserveProductScreen({super.key, required this.productId, this.initialQuantity = 1});
 
   @override
   ConsumerState<ReserveProductScreen> createState() => _ReserveProductScreenState();
@@ -21,6 +22,12 @@ class ReserveProductScreen extends ConsumerStatefulWidget {
 
 class _ReserveProductScreenState extends ConsumerState<ReserveProductScreen> {
   int _quantity = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _quantity = widget.initialQuantity.clamp(1, 1 << 30);
+  }
   FulfillmentType _fulfillmentType = FulfillmentType.pickup;
   DateTime? _scheduledFor;
   final _address = TextEditingController();

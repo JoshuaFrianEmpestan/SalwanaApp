@@ -193,7 +193,7 @@ class _ConsumerProductDetailScreenState extends ConsumerState<ConsumerProductDet
                           const SizedBox(width: 8),
                           Expanded(
                             child: OutlinedButton(
-                              onPressed: () => context.push('/consumer/products/${product.id}/reserve'),
+                              onPressed: () => context.push('/consumer/products/${product.id}/reserve?qty=$_quantity'),
                               child: const Text('Reserve'),
                             ),
                           ),
