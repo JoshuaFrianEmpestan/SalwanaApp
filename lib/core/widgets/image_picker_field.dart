@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,7 +33,7 @@ class ImagePickerField extends ConsumerStatefulWidget {
 }
 
 class _ImagePickerFieldState extends ConsumerState<ImagePickerField> {
-  File? _localFile;
+  Uint8List? _localBytes;
   bool _uploading = false;
 
   Future<void> _pick() async {
@@ -41,19 +41,22 @@ class _ImagePickerFieldState extends ConsumerState<ImagePickerField> {
     final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80, maxWidth: 1600);
     if (picked == null) return;
 
+    final bytes = await picked.readAsBytes();
     setState(() {
-      _localFile = File(picked.path);
+      _localBytes = bytes;
       _uploading = true;
     });
 
     try {
-      final url = await ref.read(cloudinaryUploadServiceProvider).uploadFile(
-            file: _localFile!,
+      final url = await ref.read(cloudinaryUploadServiceProvider).uploadBytes(
+            bytes: bytes,
+            filename: picked.name,
+            mimeType: picked.mimeType,
           );
       widget.onUploaded(url);
     } catch (e) {
       if (mounted) showAppSnackBar(context, 'Image upload failed: $e', isError: true);
-      setState(() => _localFile = null);
+      setState(() => _localBytes = null);
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
@@ -61,7 +64,7 @@ class _ImagePickerFieldState extends ConsumerState<ImagePickerField> {
 
   @override
   Widget build(BuildContext context) {
-    final hasImage = _localFile != null || (widget.initialUrl?.isNotEmpty ?? false);
+    final hasImage = _localBytes != null || (widget.initialUrl?.isNotEmpty ?? false);
 
     return InkWell(
       onTap: _uploading ? null : _pick,
@@ -78,8 +81,8 @@ class _ImagePickerFieldState extends ConsumerState<ImagePickerField> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (_localFile != null)
-              Image.file(_localFile!, fit: BoxFit.cover)
+            if (_localBytes != null)
+              Image.memory(_localBytes!, fit: BoxFit.cover)
             else if (widget.initialUrl?.isNotEmpty ?? false)
               CachedNetworkImage(imageUrl: widget.initialUrl!, fit: BoxFit.cover)
             else
