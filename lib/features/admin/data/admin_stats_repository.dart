@@ -40,8 +40,8 @@ class AdminStatsRepository {
       _count(_db.collection('users')),
       _count(_db.collection('stores').where('verificationStatus', isEqualTo: 'active')),
       _count(_db.collection('suppliers').where('verificationStatus', isEqualTo: 'active')),
-      _count(_db.collection('stores').where('verificationStatus', isEqualTo: 'pendingVerification')),
-      _count(_db.collection('suppliers').where('verificationStatus', isEqualTo: 'pendingVerification')),
+      _count(_db.collection('users').where('role', isEqualTo: 'merchant').where('status', isEqualTo: 'pendingVerification')),
+      _count(_db.collection('users').where('role', isEqualTo: 'supplier').where('status', isEqualTo: 'pendingVerification')),
       _count(_db.collection('orders')),
       _count(_db.collection('store_reviews').where('reported', isEqualTo: true)),
     ]);
