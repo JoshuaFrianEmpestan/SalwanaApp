@@ -7,8 +7,9 @@ import 'status_badge.dart';
 class AccountHeaderCard extends StatelessWidget {
   final AppUser user;
   final String? subtitle;
+  final VoidCallback? onEditProfile;
 
-  const AccountHeaderCard({super.key, required this.user, this.subtitle});
+  const AccountHeaderCard({super.key, required this.user, this.subtitle, this.onEditProfile});
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +38,18 @@ class AccountHeaderCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(user.fullName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                Row(
+                  children: [
+                    Expanded(child: Text(user.fullName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
+                    if (onEditProfile != null)
+                      IconButton(
+                        onPressed: onEditProfile,
+                        icon: const Icon(Icons.edit_outlined, size: 20),
+                        tooltip: 'Edit Profile',
+                        visualDensity: VisualDensity.compact,
+                      ),
+                  ],
+                ),
                 const SizedBox(height: 3),
                 Text(subtitle ?? user.email,
                     style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),

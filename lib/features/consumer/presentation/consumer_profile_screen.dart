@@ -40,18 +40,15 @@ class ConsumerProfileScreen extends ConsumerWidget {
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                AccountHeaderCard(user: user, subtitle: user.email),
+                 AccountHeaderCard(user: user, subtitle: user.email, onEditProfile: () => context.push('/consumer/profile/edit')),
                 const SizedBox(height: 20),
                 const Text('Account', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
-                ProfileMenuTile(icon: Icons.person_outline_rounded, label: 'Edit Profile', onTap: () => context.push('/consumer/profile/edit')),
                 ProfileMenuTile(icon: Icons.location_on_outlined, label: 'Saved Addresses', onTap: () => context.push('/consumer/addresses')),
                 ProfileMenuTile(icon: Icons.receipt_long_outlined, label: 'Purchase History', onTap: () => context.push('/consumer/orders')),
                 ProfileMenuTile(icon: Icons.account_balance_wallet_outlined, label: 'Store Credit', onTap: () => context.push('/consumer/credit')),
                 ProfileMenuTile(icon: Icons.favorite_border_rounded, label: 'Followed Products', onTap: () => context.push('/consumer/followed')),
                 const SizedBox(height: 12),
                 const Text('Preferences', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
-                ProfileMenuTile(icon: Icons.notifications_active_outlined, label: 'Notifications', onTap: () => context.push('/consumer/notifications')),
-                ProfileMenuTile(icon: Icons.notifications_outlined, label: 'Notification Preferences', onTap: () => context.push('/consumer/notification-settings')),
                 ProfileMenuTile(icon: Icons.lock_outline_rounded, label: 'Security', onTap: () => context.push('/consumer/security')),
                 const SizedBox(height: 12),
                 ProfileMenuTile(

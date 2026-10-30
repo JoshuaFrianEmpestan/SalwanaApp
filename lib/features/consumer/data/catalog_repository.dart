@@ -65,8 +65,11 @@ final storeActiveProductsProvider = StreamProvider.family<List<Product>, String>
 });
 
 final catalogFeedProvider = StreamProvider<List<Product>>((ref) {
-  return ref.watch(catalogRepositoryProvider).watchCatalog().handleError((e, st) {
-    // ignore: avoid_print
-    print('catalogFeedProvider error: $e');
+  final activeStoreIds = (ref.watch(activeStoresProvider).valueOrNull ?? const <Store>[])
+      .map((s) => s.id)
+      .toSet();
+  return ref.watch(catalogRepositoryProvider).watchCatalog().map((products) {
+    if (activeStoreIds.isEmpty) return products;
+    return products.where((p) => activeStoreIds.contains(p.storeId)).toList();
   });
 });
