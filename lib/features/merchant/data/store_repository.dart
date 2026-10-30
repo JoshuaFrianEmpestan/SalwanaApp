@@ -14,22 +14,46 @@ class StoreRepository {
 
   Stream<Store?> watchStore(String merchantId) {
     final controller = StreamController<Store?>();
-    _ref(merchantId).get().then((doc) {
+    _ref(merchantId).get().then((doc) async {
       if (doc.exists) {
         _ref(merchantId).snapshots().listen(
           (d) => controller.add(d.exists ? Store.fromMap(d.id, d.data()!) : null),
           onError: controller.addError,
         );
       } else {
-        _db
-            .collection('stores')
-            .where('merchantId', isEqualTo: merchantId)
-            .limit(1)
-            .snapshots()
-            .listen(
-          (snap) => controller.add(snap.docs.isEmpty ? null : Store.fromMap(snap.docs.first.id, snap.docs.first.data())),
-          onError: controller.addError,
-        );
+        final snap = await _db.collection('stores').where('merchantId', isEqualTo: merchantId).limit(1).get();
+        if (snap.docs.isNotEmpty) {
+          final storeDoc = snap.docs.first;
+          _db.collection('stores').doc(storeDoc.id).snapshots().listen(
+            (d) => controller.add(d.exists ? Store.fromMap(d.id, d.data()!) : null),
+            onError: controller.addError,
+          );
+        } else {
+          // Auto-create a store document for merchants that don't have one yet.
+          await _ref(merchantId).set({
+            'merchantId': merchantId,
+            'name': 'My Store',
+            'description': '',
+            'category': 'General',
+            'phone': '',
+            'email': '',
+            'addressLine': '',
+            'city': '',
+            'verificationStatus': 'pendingVerification',
+            'barcodeEnabled': false,
+            'reservationExpirationMinutes': 120,
+            'averageRating': 0,
+            'ratingCount': 0,
+            'planTier': 'free',
+            'isOpen': true,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+          _ref(merchantId).snapshots().listen(
+            (d) => controller.add(d.exists ? Store.fromMap(d.id, d.data()!) : null),
+            onError: controller.addError,
+          );
+        }
       }
     }).catchError(controller.addError);
     return controller.stream;
@@ -39,8 +63,28 @@ class StoreRepository {
     final doc = await _ref(merchantId).get();
     if (doc.exists) return Store.fromMap(doc.id, doc.data()!);
     final snap = await _db.collection('stores').where('merchantId', isEqualTo: merchantId).limit(1).get();
-    if (snap.docs.isEmpty) return null;
-    return Store.fromMap(snap.docs.first.id, snap.docs.first.data());
+    if (snap.docs.isNotEmpty) return Store.fromMap(snap.docs.first.id, snap.docs.first.data());
+    await _ref(merchantId).set({
+      'merchantId': merchantId,
+      'name': 'My Store',
+      'description': '',
+      'category': 'General',
+      'phone': '',
+      'email': '',
+      'addressLine': '',
+      'city': '',
+      'verificationStatus': 'pendingVerification',
+      'barcodeEnabled': false,
+      'reservationExpirationMinutes': 120,
+      'averageRating': 0,
+      'ratingCount': 0,
+      'planTier': 'free',
+      'isOpen': true,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+    final created = await _ref(merchantId).get();
+    return created.exists ? Store.fromMap(created.id, created.data()!) : null;
   }
 
   Future<void> updateStore(String merchantId, Map<String, dynamic> patch) async {
