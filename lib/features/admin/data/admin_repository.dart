@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -75,13 +76,24 @@ class AdminRepository {
 
   Future<void> setAccountStatus({required String targetUserId, required String status, required String reason}) async {
     try {
-      await _functions.httpsCallable('setAccountStatus').call<Map<String, dynamic>>({
-        'targetUserId': targetUserId,
-        'status': status,
-        'reason': reason,
-      });
-    } on FirebaseFunctionsException catch (e) {
-      throw AdminActionException(e.message ?? 'Could not update account status.');
+      final user = FirebaseAuth.instance.currentUser;
+      final token = await user?.getIdToken();
+      final resp = await http.post(
+        Uri.parse('https://salwanaapp.onrender.com/setAccountStatus'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+        body: jsonEncode({
+          'targetUserId': targetUserId,
+          'status': status,
+          'reason': reason,
+        }),
+      );
+      if (resp.statusCode >= 400) {
+        final body = jsonDecode(resp.body);
+        throw AdminActionException(body['error'] ?? 'Could not update account status.');
+      }
+    } catch (e) {
+      if (e is AdminActionException) rethrow;
+      throw AdminActionException(e.toString());
     }
   }
 
