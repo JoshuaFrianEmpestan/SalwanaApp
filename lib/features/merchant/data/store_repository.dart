@@ -16,6 +16,11 @@ class StoreRepository {
     final controller = StreamController<Store?>();
     _ref(merchantId).get().then((doc) async {
       if (doc.exists) {
+        final userDoc = await _db.collection('users').doc(merchantId).get();
+        final userStatus = userDoc.data()?['status'];
+        if (userStatus == 'active' && doc.data()?['verificationStatus'] != 'active') {
+          await _ref(merchantId).update({'verificationStatus': 'active', 'updatedAt': FieldValue.serverTimestamp()});
+        }
         _ref(merchantId).snapshots().listen(
           (d) => controller.add(d.exists ? Store.fromMap(d.id, d.data()!) : null),
           onError: controller.addError,
@@ -24,12 +29,19 @@ class StoreRepository {
         final snap = await _db.collection('stores').where('merchantId', isEqualTo: merchantId).limit(1).get();
         if (snap.docs.isNotEmpty) {
           final storeDoc = snap.docs.first;
+          final userDoc = await _db.collection('users').doc(merchantId).get();
+          final userStatus = userDoc.data()?['status'];
+          if (userStatus == 'active' && storeDoc.data()['verificationStatus'] != 'active') {
+            await _db.collection('stores').doc(storeDoc.id).update({'verificationStatus': 'active', 'updatedAt': FieldValue.serverTimestamp()});
+          }
           _db.collection('stores').doc(storeDoc.id).snapshots().listen(
             (d) => controller.add(d.exists ? Store.fromMap(d.id, d.data()!) : null),
             onError: controller.addError,
           );
         } else {
-          // Auto-create a store document for merchants that don't have one yet.
+          final userDoc = await _db.collection('users').doc(merchantId).get();
+          final userStatus = userDoc.data()?['status'];
+          final storeStatus = userStatus == 'active' ? 'active' : 'pendingVerification';
           await _ref(merchantId).set({
             'merchantId': merchantId,
             'name': 'My Store',
@@ -39,7 +51,7 @@ class StoreRepository {
             'email': '',
             'addressLine': '',
             'city': '',
-            'verificationStatus': 'pendingVerification',
+            'verificationStatus': storeStatus,
             'barcodeEnabled': false,
             'reservationExpirationMinutes': 120,
             'averageRating': 0,
@@ -61,9 +73,31 @@ class StoreRepository {
 
   Future<Store?> getStore(String merchantId) async {
     final doc = await _ref(merchantId).get();
-    if (doc.exists) return Store.fromMap(doc.id, doc.data()!);
+    if (doc.exists) {
+      final userDoc = await _db.collection('users').doc(merchantId).get();
+      final userStatus = userDoc.data()?['status'];
+      if (userStatus == 'active' && doc.data()?['verificationStatus'] != 'active') {
+        await _ref(merchantId).update({'verificationStatus': 'active', 'updatedAt': FieldValue.serverTimestamp()});
+        final updated = await _ref(merchantId).get();
+        return Store.fromMap(updated.id, updated.data()!);
+      }
+      return Store.fromMap(doc.id, doc.data()!);
+    }
     final snap = await _db.collection('stores').where('merchantId', isEqualTo: merchantId).limit(1).get();
-    if (snap.docs.isNotEmpty) return Store.fromMap(snap.docs.first.id, snap.docs.first.data());
+    if (snap.docs.isNotEmpty) {
+      final storeDoc = snap.docs.first;
+      final userDoc = await _db.collection('users').doc(merchantId).get();
+      final userStatus = userDoc.data()?['status'];
+      if (userStatus == 'active' && storeDoc.data()['verificationStatus'] != 'active') {
+        await _db.collection('stores').doc(storeDoc.id).update({'verificationStatus': 'active', 'updatedAt': FieldValue.serverTimestamp()});
+        final updated = await _db.collection('stores').doc(storeDoc.id).get();
+        return Store.fromMap(updated.id, updated.data()!);
+      }
+      return Store.fromMap(storeDoc.id, storeDoc.data());
+    }
+    final userDoc = await _db.collection('users').doc(merchantId).get();
+    final userStatus = userDoc.data()?['status'];
+    final storeStatus = userStatus == 'active' ? 'active' : 'pendingVerification';
     await _ref(merchantId).set({
       'merchantId': merchantId,
       'name': 'My Store',
@@ -73,7 +107,7 @@ class StoreRepository {
       'email': '',
       'addressLine': '',
       'city': '',
-      'verificationStatus': 'pendingVerification',
+      'verificationStatus': storeStatus,
       'barcodeEnabled': false,
       'reservationExpirationMinutes': 120,
       'averageRating': 0,
