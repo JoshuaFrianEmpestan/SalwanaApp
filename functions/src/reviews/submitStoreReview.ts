@@ -44,13 +44,14 @@ export const submitStoreReview = onCall<SubmitReviewRequest>(async (request) => 
 
     const storeRef = db.collection("stores").doc(order.storeId);
     const storeSnap = await tx.get(storeRef);
-    if (!storeSnap.exists) badRequest("Store not found.");
-    const store = storeSnap.data()!;
-
-    const oldCount = store.ratingCount ?? 0;
-    const oldAvg = store.averageRating ?? 0;
-    const newCount = oldCount + 1;
-    const newAvg = (oldAvg * oldCount + rating) / newCount;
+    if (storeSnap.exists) {
+      const store = storeSnap.data()!;
+      const oldCount = store.ratingCount ?? 0;
+      const oldAvg = store.averageRating ?? 0;
+      const newCount = oldCount + 1;
+      const newAvg = (oldAvg * oldCount + rating) / newCount;
+      tx.update(storeRef, { averageRating: newAvg, ratingCount: newCount });
+    }
 
     tx.set(reviewRef, {
       storeId: order.storeId,
@@ -68,7 +69,6 @@ export const submitStoreReview = onCall<SubmitReviewRequest>(async (request) => 
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-    tx.update(storeRef, { averageRating: newAvg, ratingCount: newCount });
     tx.update(orderRef, { reviewed: true, updatedAt: FieldValue.serverTimestamp() });
   });
 
