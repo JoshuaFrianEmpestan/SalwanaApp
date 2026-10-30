@@ -26,7 +26,7 @@ class StoreDetailScreen extends ConsumerWidget {
             if (store == null) {
               return const EmptyStateView(icon: Icons.storefront_outlined, title: 'Store not found', message: 'This store may no longer be available.');
             }
-            final productsAsync = ref.watch(storeActiveProductsProvider(storeId));
+            final productsAsync = ref.watch(storeActiveProductsProvider(store.merchantId.isNotEmpty ? store.merchantId : storeId));
 
             return CustomScrollView(
               slivers: [

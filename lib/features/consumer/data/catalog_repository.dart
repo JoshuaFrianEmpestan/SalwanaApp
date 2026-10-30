@@ -28,9 +28,25 @@ class CatalogRepository {
         .collection('products')
         .where('storeId', isEqualTo: storeId)
         .where('status', isEqualTo: 'active')
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => Product.fromMap(d.id, d.data())).toList());
+        .map((snap) {
+          final list = snap.docs.map((d) => Product.fromMap(d.id, d.data())).toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
+  }
+
+  Stream<List<Product>> watchMerchantActiveProducts(String merchantId) {
+    return _db
+        .collection('products')
+        .where('merchantId', isEqualTo: merchantId)
+        .where('status', isEqualTo: 'active')
+        .snapshots()
+        .map((snap) {
+          final list = snap.docs.map((d) => Product.fromMap(d.id, d.data())).toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
   }
 
   /// Bounded catalog-wide feed for search/browse — client-side filtered
@@ -65,11 +81,11 @@ final storeActiveProductsProvider = StreamProvider.family<List<Product>, String>
 });
 
 final catalogFeedProvider = StreamProvider<List<Product>>((ref) {
-  final activeStoreIds = (ref.watch(activeStoresProvider).valueOrNull ?? const <Store>[])
-      .map((s) => s.id)
+  final activeMerchantIds = (ref.watch(activeStoresProvider).valueOrNull ?? const <Store>[])
+      .map((s) => s.merchantId.isNotEmpty ? s.merchantId : s.id)
       .toSet();
   return ref.watch(catalogRepositoryProvider).watchCatalog().map((products) {
-    if (activeStoreIds.isEmpty) return products;
-    return products.where((p) => activeStoreIds.contains(p.storeId)).toList();
+    if (activeMerchantIds.isEmpty) return products;
+    return products.where((p) => activeMerchantIds.contains(p.storeId) || activeMerchantIds.contains(p.merchantId)).toList();
   });
 });
