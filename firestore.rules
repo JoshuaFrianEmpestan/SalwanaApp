@@ -254,8 +254,9 @@ service cloud.firestore {
 
     // ---------------- followed_products ----------------
     match /followed_products/{followId} {
-      allow read, write: if isSignedIn() && resource.data.consumerId == request.auth.uid;
+      allow read: if isSignedIn() && (resource == null || resource.data.consumerId == request.auth.uid);
       allow create: if isRole('consumer') && request.resource.data.consumerId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.consumerId == request.auth.uid;
     }
 
     // ---------------- subscription_plans / subscriptions ----------------

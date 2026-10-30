@@ -107,9 +107,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     ],
                   ),
                   const Spacer(),
-                  PrimaryButton(label: 'Simulate Successful Payment', onPressed: () => _pay(true), loading: _processing),
+                  PrimaryButton(label: 'Simulate Successful Payment', onPressed: _processing ? null : () => _pay(true), loading: _processing),
                   const SizedBox(height: 10),
-                  PrimaryButton(label: 'Simulate Failed Payment', outlined: true, onPressed: () => _pay(false), loading: false),
+                  PrimaryButton(label: 'Simulate Failed Payment', outlined: true, onPressed: _processing ? null : () => _pay(false), loading: _processing),
                 ],
               ),
             );

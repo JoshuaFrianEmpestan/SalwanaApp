@@ -772,6 +772,205 @@ app.post('/editStoreReview', verifyAuth, async (req, res) => {
   }
 });
 
+﻿app.post('/processPayment', verifyAuth, async (req, res) => {
+  try {
+    const uid = req.uid;
+    const { orderId, simulateOutcome } = req.body || {};
+    if (!orderId) return badRequest(res, 'Missing orderId.');
+    if (simulateOutcome !== 'success' && simulateOutcome !== 'fail') return badRequest(res, 'Invalid simulateOutcome.');
+
+    const RETRYABLE = new Set(['pendingPayment', 'paymentFailed']);
+
+    await db.runTransaction(async (tx) => {
+      const orderRef = db.collection('orders').doc(orderId);
+      const orderSnap = await tx.get(orderRef);
+      if (!orderSnap.exists) throw new Error('Order not found.');
+      const order = orderSnap.data();
+
+      if (order.consumerId !== uid) throw new Error('You are not authorized to pay for this order.');
+      if (order.paymentMethod === 'cashOnDelivery') throw new Error('Cash on delivery orders do not require online payment.');
+      if (!RETRYABLE.has(order.status)) throw new Error('This order is already ' + order.status + '.');
+
+      const wasHeld = order.status === 'pendingPayment';
+      const items = order.items || [];
+      const productRefs = items.map((i) => db.collection('products').doc(i.productId));
+      const productSnaps = await Promise.all(productRefs.map((r) => tx.get(r)));
+
+      const storeRef = db.collection('stores').doc(order.storeId);
+      const storeSnap = await tx.get(storeRef);
+      const store = storeSnap.exists ? storeSnap.data() : { name: order.storeName, phone: '', email: '' };
+
+      const paymentRef = db.collection('payments').doc(orderId);
+
+      if (simulateOutcome === 'success') {
+        let cogs = 0;
+        productSnaps.forEach((snap, idx) => {
+          const qty = items[idx].quantity;
+          if (!snap.exists) return;
+          const product = snap.data();
+          const current = product.currentStock || 0;
+          const reserved = product.reservedStock || 0;
+          cogs += (product.costPrice || 0) * qty;
+
+          if (wasHeld) {
+            const newReserved = Math.max(0, reserved - qty);
+            const newCurrent = Math.max(0, current - qty);
+            tx.update(productRefs[idx], { currentStock: newCurrent, reservedStock: newReserved, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+            const movementRef = db.collection('inventory_movements').doc();
+            tx.set(movementRef, {
+              productId: snap.id,
+              storeId: product.storeId,
+              type: 'sale',
+              quantityBefore: current,
+              quantityChanged: -qty,
+              quantityAfter: newCurrent,
+              reason: 'Payment successful',
+              relatedOrderId: orderId,
+              relatedReservationId: null,
+              relatedDeliveryId: null,
+              performedByUserId: uid,
+              performedByName: order.consumerName || '',
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+          } else {
+            const available = current - reserved;
+            if (qty > available) throw new Error(product.name + ' no longer has enough stock (only ' + available + ' left).');
+            const newCurrent = current - qty;
+            tx.update(productRefs[idx], { currentStock: newCurrent, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+            const movementRef = db.collection('inventory_movements').doc();
+            tx.set(movementRef, {
+              productId: snap.id,
+              storeId: product.storeId,
+              type: 'sale',
+              quantityBefore: current,
+              quantityChanged: -qty,
+              quantityAfter: newCurrent,
+              reason: 'Payment successful (retry after earlier failure)',
+              relatedOrderId: orderId,
+              relatedReservationId: null,
+              relatedDeliveryId: null,
+              performedByUserId: uid,
+              performedByName: order.consumerName || '',
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+          }
+        });
+
+        tx.update(orderRef, { status: 'confirmed', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+        tx.update(paymentRef, {
+          status: 'successful',
+          providerReference: 'SIM-' + Math.random().toString(36).slice(2, 10).toUpperCase(),
+          failureReason: null,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        const receiptRef = db.collection('digital_receipts').doc(orderId);
+        const receiptNumber = 'SLW-' + new Date().getFullYear() + '-' + orderId.slice(0, 8).toUpperCase();
+        tx.set(receiptRef, {
+          receiptNumber,
+          orderId,
+          storeName: (store && store.name) || order.storeName,
+          storePhone: (store && store.phone) || '',
+          storeEmail: (store && store.email) || '',
+          consumerName: order.consumerName,
+          items: order.items,
+          subtotal: order.subtotal,
+          deliveryFee: order.deliveryFee || 0,
+          discount: order.discount || 0,
+          platformFee: order.platformFee || 0,
+          total: order.total,
+          paymentMethod: order.paymentMethod,
+          paymentStatus: 'successful',
+          orderStatus: 'confirmed',
+          transactionReference: orderId,
+          issuedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        const transactionRef = db.collection('transactions').doc(orderId);
+        tx.set(transactionRef, {
+          orderId,
+          storeId: order.storeId,
+          merchantId: order.merchantId,
+          consumerId: order.consumerId,
+          type: 'sale',
+          amount: order.total,
+          subtotal: order.subtotal,
+          cogs: Math.round(cogs * 100) / 100,
+          paymentMethod: order.paymentMethod,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } else {
+        if (wasHeld) {
+          productSnaps.forEach((snap, idx) => {
+            const qty = items[idx].quantity;
+            if (!snap.exists) return;
+            const product = snap.data();
+            const reserved = product.reservedStock || 0;
+            const newReserved = Math.max(0, reserved - qty);
+            tx.update(productRefs[idx], { reservedStock: newReserved, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+            const movementRef = db.collection('inventory_movements').doc();
+            tx.set(movementRef, {
+              productId: snap.id,
+              storeId: product.storeId,
+              type: 'reservationReleased',
+              quantityBefore: reserved,
+              quantityChanged: -qty,
+              quantityAfter: newReserved,
+              reason: 'Payment failed - stock released',
+              relatedOrderId: orderId,
+              relatedReservationId: null,
+              relatedDeliveryId: null,
+              performedByUserId: uid,
+              performedByName: order.consumerName || '',
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+          });
+        }
+        tx.update(orderRef, { status: 'paymentFailed', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+        tx.update(paymentRef, {
+          status: 'failed',
+          failureReason: 'Simulated payment failure (test mode).',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    });
+
+    const orderSnap = await db.collection('orders').doc(orderId).get();
+    const order = orderSnap.exists ? orderSnap.data() : null;
+    if (order) {
+      const success = simulateOutcome === 'success';
+      await db.collection('notifications').add({
+        userId: order.consumerId,
+        type: success ? 'paymentSuccessful' : 'paymentFailed',
+        title: success ? 'Payment successful' : 'Payment failed',
+        message: success
+          ? 'Your payment of P' + order.total + ' for ' + order.storeName + ' was successful.'
+          : 'Your payment for ' + order.storeName + ' could not be processed. Please try again.',
+        relatedRecordId: orderId,
+        relatedRecordType: 'order',
+        read: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      if (success) {
+        await db.collection('notifications').add({
+          userId: order.merchantId,
+          type: 'paymentSuccessful',
+          title: 'Payment received',
+          message: 'Payment of P' + order.total + ' received for order from ' + order.consumerName + '.',
+          relatedRecordId: orderId,
+          relatedRecordType: 'order',
+          read: false,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    }
+
+    res.json({ status: simulateOutcome === 'success' ? 'confirmed' : 'paymentFailed' });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Payment could not be processed.' });
+  }
+});
+
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`API running on ${PORT}`));
 const NEXT_STATUS = {

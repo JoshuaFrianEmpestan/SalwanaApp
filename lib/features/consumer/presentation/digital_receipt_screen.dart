@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import '../../../core/constants/enums.dart';
+import '../../../models/digital_receipt.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/constants/enums.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../data/payment_repository.dart';
+import 'package:go_router/go_router.dart';
 
 class DigitalReceiptScreen extends ConsumerWidget {
   final String orderId;
@@ -15,6 +16,7 @@ class DigitalReceiptScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final receiptAsync = ref.watch(receiptProvider(orderId));
+  final orderAsync = ref.watch(orderProvider(orderId));
 
     return Scaffold(
       appBar: AppBar(title: const Text('Digital Receipt')),
@@ -22,14 +24,45 @@ class DigitalReceiptScreen extends ConsumerWidget {
         child: receiptAsync.when(
           loading: () => const LoadingListView(),
           error: (e, _) => ErrorStateView(onRetry: () => ref.invalidate(receiptProvider(orderId))),
-          data: (receipt) {
-            if (receipt == null) {
+          data: (received) {
+            DigitalReceipt? r = received;
+            if (r == null) {
+              final order = orderAsync.valueOrNull;
+              if (order != null) {
+                r = DigitalReceipt(
+                  id: orderId,
+                  receiptNumber: 'SLW-${DateTime.now().year}-${orderId.substring(0, 8).toUpperCase()}',
+                  orderId: orderId,
+                  storeName: order.storeName,
+                  storePhone: '',
+                  storeEmail: '',
+                  consumerName: order.consumerName,
+                  items: order.items,
+                  subtotal: order.subtotal,
+                  deliveryFee: order.deliveryFee,
+                  discount: order.discount,
+                  platformFee: order.platformFee,
+                  total: order.total,
+                  paymentMethod: order.paymentMethod,
+                  paymentStatus: order.paymentMethod == PaymentMethod.cashOnDelivery
+                       ? PaymentStatus.successful
+                       : (order.status == OrderStatus.confirmed || order.status == OrderStatus.paid || order.status == OrderStatus.completed
+                           ? PaymentStatus.successful
+                           : PaymentStatus.pending),
+                  orderStatus: order.status,
+                  transactionReference: orderId,
+                  issuedAt: order.createdAt,
+                );
+              }
+            }
+            if (r == null) {
               return const EmptyStateView(
                 icon: Icons.receipt_long_outlined,
                 title: 'Receipt not available yet',
                 message: 'A receipt is generated once payment is confirmed.',
               );
             }
+            final receipt = r;
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [

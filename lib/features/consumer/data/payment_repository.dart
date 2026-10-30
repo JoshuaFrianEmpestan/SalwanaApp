@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
-import 'package:cloud_functions/cloud_functions.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../models/digital_receipt.dart';
@@ -15,18 +17,34 @@ class PaymentException implements Exception {
 /// Client for `processPayment` plus the read-side streams the
 /// payment/receipt screens need (§6, §7).
 class PaymentRepository {
-  final FirebaseFunctions _functions;
   final FirebaseFirestore _db;
-  PaymentRepository(this._functions, this._db);
+  final FirebaseAuth _auth;
+  PaymentRepository(this._db, this._auth);
 
   Future<void> pay({required String orderId, required bool simulateSuccess}) async {
     try {
-      await _functions.httpsCallable('processPayment').call<Map<String, dynamic>>({
-        'orderId': orderId,
-        'simulateOutcome': simulateSuccess ? 'success' : 'fail',
-      });
-    } on FirebaseFunctionsException catch (e) {
-      throw PaymentException(e.message ?? 'Payment could not be processed.');
+      final user = _auth.currentUser;
+      if (user == null) throw PaymentException('Not signed in.');
+      final token = await user.getIdToken();
+      final resp = await http.post(
+        Uri.parse('https://salwanaapp.onrender.com/processPayment'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+        body: jsonEncode({
+          'orderId': orderId,
+          'simulateOutcome': simulateSuccess ? 'success' : 'fail',
+        }),
+      );
+      if (resp.statusCode >= 400) {
+        String msg = 'Payment could not be processed.';
+        try {
+          final body = jsonDecode(resp.body);
+          msg = body['error'] ?? msg;
+        } catch (_) {}
+        throw PaymentException(msg);
+      }
+    } catch (e) {
+      if (e is PaymentException) rethrow;
+      throw PaymentException(e.toString());
     }
   }
 
@@ -40,7 +58,7 @@ class PaymentRepository {
 }
 
 final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
-  return PaymentRepository(ref.watch(firebaseFunctionsProvider), ref.watch(firestoreProvider));
+  return PaymentRepository(ref.watch(firestoreProvider), ref.watch(firebaseAuthProvider));
 });
 
 final orderProvider = StreamProvider.family<Order?, String>((ref, orderId) {

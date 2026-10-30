@@ -19,7 +19,9 @@ class FinanceHomeScreen extends ConsumerStatefulWidget {
 class _FinanceHomeScreenState extends ConsumerState<FinanceHomeScreen> {
   _Period _period = _Period.today;
   DateTimeRange? _customRange;
-  Future<FinanceSummary>? _summaryFuture;
+  FinanceSummary? _summary;
+  bool _loading = false;
+  Object? _error;
   String? _lastMerchantId;
 
   (DateTime, DateTime) _rangeFor(_Period period) {
@@ -38,9 +40,26 @@ class _FinanceHomeScreenState extends ConsumerState<FinanceHomeScreen> {
     }
   }
 
-  void _load(String merchantId) {
+  Future<void> _load(String merchantId) async {
     final (start, end) = _rangeFor(_period);
-    setState(() => _summaryFuture = ref.read(financeRepositoryProvider).computeSummary(merchantId, start, end));
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final summary = await ref.read(financeRepositoryProvider).computeSummary(merchantId, start, end);
+      if (!mounted) return;
+      setState(() {
+        _summary = summary;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e;
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _pickCustomRange(String merchantId) async {
@@ -65,7 +84,9 @@ class _FinanceHomeScreenState extends ConsumerState<FinanceHomeScreen> {
 
     if (_lastMerchantId != user.id) {
       _lastMerchantId = user.id;
-      _load(user.id);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _load(user.id);
+      });
     }
 
     return Scaffold(
@@ -93,18 +114,19 @@ class _FinanceHomeScreenState extends ConsumerState<FinanceHomeScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              FutureBuilder<FinanceSummary>(
-                future: _summaryFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Padding(padding: EdgeInsets.symmetric(vertical: 40), child: LoadingSpinner());
-                  }
-                  if (snapshot.hasError || !snapshot.hasData) {
-                    return ErrorStateView(onRetry: () => _load(user.id));
-                  }
-                  final s = snapshot.data!;
-                  return Column(
-                    children: [
+              Builder(builder: (context) {
+                if (_loading && _summary == null) {
+                  return const Padding(padding: EdgeInsets.symmetric(vertical: 40), child: LoadingSpinner());
+                }
+              if (_error != null && _summary == null) {
+                return ErrorStateView(onRetry: () => _load(user.id));
+              }
+              if (_summary == null) {
+                return const Padding(padding: EdgeInsets.symmetric(vertical: 40), child: LoadingSpinner());
+              }
+              final s = _summary!;
+              return Column(
+                children: [
                       Row(
                         children: [
                           Expanded(child: _StatCard(label: 'Gross Sales', value: s.grossSales, color: AppColors.primary)),
@@ -134,8 +156,7 @@ class _FinanceHomeScreenState extends ConsumerState<FinanceHomeScreen> {
                       _StatCard(label: 'Total Capital Invested', value: s.totalCapital, color: AppColors.success, onTap: () => context.push('/merchant/finance/capital')),
                     ],
                   );
-                },
-              ),
+              }),
               const SizedBox(height: 20),
               Container(
                 padding: const EdgeInsets.all(12),
