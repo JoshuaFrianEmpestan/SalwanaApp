@@ -1,21 +1,16 @@
 {
-  "dependencies": {
-    "cloudinary": "^2.11.0"
-  },
   "name": "salwanaapp",
   "version": "1.0.0",
-  "description": "Inventory management, merchant finance tracking, product reservation, and online marketplace app for small/medium merchants — built with Flutter (client) and Firebase (cloud backend: Auth, Firestore, Storage, Cloud Functions, Cloud Messaging).",
+  "description": "Salwana backend API",
   "main": "index.js",
-  "directories": {
-    "lib": "lib",
-    "test": "test"
-  },
-  "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "firebase-admin": "^12.3.1",
+    "uuid": "^9.0.1",
+    "cloudinary": "^2.11.0"
+  }
 }
