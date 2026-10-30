@@ -1,4 +1,6 @@
+
 const express = require('express');
+
 const cors = require('cors');
 const admin = require('firebase-admin');
 const fs = require('fs');
@@ -746,6 +748,7 @@ app.post('/editStoreReview', verifyAuth, async (req, res) => {
   }
 });
 
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`API running on ${PORT}`));
 const NEXT_STATUS = {
   preparing: 'preparing',
@@ -1070,4 +1073,3 @@ app.post('/subscribeToPremium', verifyAuth, async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 8080;
