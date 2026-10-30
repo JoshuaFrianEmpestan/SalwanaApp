@@ -10,12 +10,14 @@ import '../../../core/widgets/state_views.dart';
 import '../../../models/cart_item.dart';
 import '../data/cart_repository.dart';
 import '../data/checkout_repository.dart';
+import '../data/address_repository.dart';
 
 class _GroupConfig {
   FulfillmentType fulfillmentType = FulfillmentType.pickup;
   PaymentMethod paymentMethod = PaymentMethod.cashOnDelivery;
   final TextEditingController address = TextEditingController();
   final TextEditingController notes = TextEditingController();
+  String? selectedAddressId;
 }
 
 class CheckoutScreen extends ConsumerStatefulWidget {
@@ -141,7 +143,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 }
 
-class _StoreCheckoutCard extends StatelessWidget {
+class _StoreCheckoutCard extends ConsumerWidget {
   final String storeId;
   final List<CartItem> items;
   final _GroupConfig config;
@@ -150,7 +152,7 @@ class _StoreCheckoutCard extends StatelessWidget {
   const _StoreCheckoutCard({required this.storeId, required this.items, required this.config, required this.onChanged});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final subtotal = items.fold<double>(0, (sum, i) => sum + i.subtotal);
     return Container(
       padding: const EdgeInsets.all(14),
@@ -200,11 +202,7 @@ class _StoreCheckoutCard extends StatelessWidget {
           ),
           if (config.fulfillmentType == FulfillmentType.delivery) ...[
             const SizedBox(height: 10),
-            TextField(
-              controller: config.address,
-              decoration: const InputDecoration(labelText: 'Delivery Address', isDense: true),
-              maxLines: 2,
-            ),
+            _DeliveryAddressSelector(config: config, onChanged: onChanged),
           ],
           const SizedBox(height: 14),
           const Text('Payment Method', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
@@ -240,6 +238,83 @@ class _StoreCheckoutCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+
+class _DeliveryAddressSelector extends ConsumerStatefulWidget {
+  final _GroupConfig config;
+  final VoidCallback onChanged;
+  const _DeliveryAddressSelector({required this.config, required this.onChanged});
+
+  @override
+  ConsumerState<_DeliveryAddressSelector> createState() => _DeliveryAddressSelectorState();
+}
+
+class _DeliveryAddressSelectorState extends ConsumerState<_DeliveryAddressSelector> {
+  bool _manual = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final addressesAsync = ref.watch(myAddressesProvider);
+    final addresses = addressesAsync.valueOrNull ?? const [];
+    final config = widget.config;
+
+    if (addresses.isEmpty) {
+      return TextField(
+        controller: config.address,
+        decoration: const InputDecoration(labelText: 'Delivery Address', isDense: true),
+        maxLines: 2,
+      );
+    }
+
+    // Default to the default address on first build.
+    if (config.selectedAddressId == null && config.address.text.trim().isEmpty) {
+      final def = addresses.firstWhere((a) => a.isDefault, orElse: () => addresses.first);
+      config.selectedAddressId = def.id;
+      config.address.text = def.fullAddress;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DropdownButtonFormField<String>(
+          initialValue: _manual ? null : config.selectedAddressId,
+          decoration: const InputDecoration(labelText: 'Saved Address', isDense: true),
+          items: [
+            for (final a in addresses)
+              DropdownMenuItem(
+                value: a.id,
+                child: Text('${a.label} - ${a.fullAddress}', overflow: TextOverflow.ellipsis),
+              ),
+            const DropdownMenuItem(value: '__manual__', child: Text('Enter a new address manually')),
+          ],
+          onChanged: (v) {
+            if (v == '__manual__') {
+              setState(() => _manual = true);
+              config.selectedAddressId = null;
+              config.address.clear();
+              widget.onChanged();
+              return;
+            }
+            setState(() => _manual = false);
+            final a = addresses.firstWhere((x) => x.id == v);
+            config.selectedAddressId = a.id;
+            config.address.text = a.fullAddress;
+            widget.onChanged();
+          },
+        ),
+        if (_manual) ...[
+          const SizedBox(height: 8),
+          TextField(
+            controller: config.address,
+            decoration: const InputDecoration(labelText: 'Delivery Address', isDense: true),
+            maxLines: 2,
+            onChanged: (_) => widget.onChanged(),
+          ),
+        ],
+      ],
     );
   }
 }
