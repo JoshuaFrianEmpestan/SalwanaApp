@@ -367,10 +367,17 @@ app.post('/syncStore', verifyAuth, async (req, res) => {
     if (user.role !== 'merchant' && user.role !== 'supplier') return badRequest(res, 'Not a merchant/supplier account.');
     const collection = user.role === 'supplier' ? 'suppliers' : 'stores';
     const field = user.role === 'supplier' ? 'userId' : 'merchantId';
-    const snap = await db.collection(collection).where(field, '==', uid).get();
     const newStatus = user.status === 'active' ? 'active' : 'pendingVerification';
     const isSupplier = user.role === 'supplier';
-    if (snap.empty) {
+
+    // Collect all store/supplier docs for this merchant (by doc id or by field).
+    const refs = new Set();
+    const byId = await db.collection(collection).doc(uid).get();
+    if (byId.exists) refs.add(byId.ref);
+    const byField = await db.collection(collection).where(field, '==', uid).get();
+    byField.docs.forEach((d) => refs.add(d.ref));
+
+    if (refs.size === 0) {
       const ref = db.collection(collection).doc(uid);
       if (isSupplier) {
         await ref.set({
@@ -408,49 +415,9 @@ app.post('/syncStore', verifyAuth, async (req, res) => {
       }
     } else {
       const batch = db.batch();
-      snap.docs.forEach((d) => {
-        batch.update(d.ref, { verificationStatus: newStatus, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+      refs.forEach((r) => {
+        batch.update(r, { verificationStatus: newStatus, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
       });
-      // Also ensure canonical doc id exists
-      const canonical = db.collection(collection).doc(uid);
-      const canonicalSnap = await canonical.get();
-      if (!canonicalSnap.exists) {
-        // create canonical if missing
-        if (isSupplier) {
-          batch.set(canonical, {
-            userId: uid,
-            companyName: user.fullName || 'My Company',
-            contactName: user.fullName || '',
-            phone: user.phone || '',
-            email: user.email || '',
-            address: '',
-            suppliedCategories: [],
-            verificationStatus: newStatus,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
-        } else {
-          batch.set(canonical, {
-            merchantId: uid,
-            name: 'My Store',
-            description: '',
-            category: 'General',
-            phone: user.phone || '',
-            email: user.email || '',
-            addressLine: '',
-            city: '',
-            verificationStatus: newStatus,
-            barcodeEnabled: false,
-            reservationExpirationMinutes: 120,
-            averageRating: 0,
-            ratingCount: 0,
-            planTier: 'free',
-            isOpen: true,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
-        }
-      }
       await batch.commit();
     }
     res.json({ ok: true, status: newStatus });
