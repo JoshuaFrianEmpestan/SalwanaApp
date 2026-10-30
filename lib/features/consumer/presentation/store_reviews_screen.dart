@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/review_tile.dart';
 import '../../../core/widgets/state_views.dart';
+import '../data/order_repository.dart';
 import '../data/review_repository.dart';
 
 class StoreReviewsScreen extends ConsumerWidget {
@@ -61,6 +62,10 @@ class StoreReviewsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final reviewsAsync = ref.watch(storeReviewsProvider(storeId));
     final appUser = ref.watch(appUserProvider).valueOrNull;
+    final ordersAsync = ref.watch(consumerOrdersProvider);
+    final unreviewed = (ordersAsync.valueOrNull ?? const [])
+        .where((o) => o.storeId == storeId && o.status == OrderStatus.completed && !o.reviewed)
+        .toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Store Reviews')),
@@ -130,6 +135,15 @@ class StoreReviewsScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
+                if (unreviewed.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: FilledButton.icon(
+                      onPressed: () => context.push('/consumer/orders/${unreviewed.first.id}/review'),
+                      icon: const Icon(Icons.star_outline_rounded, size: 18),
+                      label: Text(unreviewed.length == 1 ? 'Write a Review' : 'Write a Review (${unreviewed.length} pending)'),
+                    ),
+                  ),
                 for (final review in reviews) ...[
                   ReviewTile(
                     review: review,
