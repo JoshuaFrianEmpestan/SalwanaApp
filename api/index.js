@@ -746,5 +746,153 @@ app.post('/editStoreReview', verifyAuth, async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`API running on ${PORT}`));
+const NEXT_STATUS = {
+  preparing: 'preparing',
+  readyForPickup: 'readyForPickup',
+  outForDelivery: 'outForDelivery',
+  completed: 'completed',
+  cancel: 'cancelled',
+  refund: 'refunded',
+};
+const MERCHANT_ACTIONS = new Set(['preparing', 'readyForPickup', 'outForDelivery', 'completed', 'cancel', 'refund']);
+const CONSUMER_ACTIONS = new Set(['cancel']);
+const ALLOWED_FROM = {
+  preparing: ['confirmed'],
+  readyForPickup: ['preparing'],
+  outForDelivery: ['preparing'],
+  completed: ['readyForPickup', 'outForDelivery'],
+  cancel: ['pendingPayment', 'confirmed', 'preparing'],
+  refund: ['completed'],
+};
+const STOCK_ALREADY_SOLD_STATUSES = new Set(['confirmed', 'preparing']);
+
+app.post('/updateOrderStatus', verifyAuth, async (req, res) => {
+  try {
+    const uid = req.uid;
+    const { orderId, action, reason } = req.body || {};
+    if (!orderId || !action) return badRequest(res, 'Missing orderId or action.');
+    if (!Object.prototype.hasOwnProperty.call(NEXT_STATUS, action)) return badRequest(res, 'Invalid action.');
+
+    await db.runTransaction(async (tx) => {
+      const orderRef = db.collection('orders').doc(orderId);
+      const orderSnap = await tx.get(orderRef);
+      if (!orderSnap.exists) throw new Error('Order not found.');
+      const order = orderSnap.data();
+
+      const isMerchant = MERCHANT_ACTIONS.has(action) && order.merchantId === uid;
+      const isConsumer = CONSUMER_ACTIONS.has(action) && order.consumerId === uid;
+      if (!isMerchant && !isConsumer) throw new Error('You are not authorized to perform this action.');
+
+      if (action === 'readyForPickup' && order.fulfillmentType !== 'pickup') throw new Error('This order is for delivery, not pickup.');
+      if (action === 'outForDelivery' && order.fulfillmentType !== 'delivery') throw new Error('This order is for pickup, not delivery.');
+
+      if (!ALLOWED_FROM[action].includes(order.status)) {
+        throw new Error(`Cannot ${action} an order that is ${order.status}.`);
+      }
+
+      const items = order.items || [];
+
+      if (action === 'cancel' && STOCK_ALREADY_SOLD_STATUSES.has(order.status)) {
+        const productRefs = items.map((i) => db.collection('products').doc(i.productId));
+        const productSnaps = await Promise.all(productRefs.map((r) => tx.get(r)));
+        productSnaps.forEach((productSnap, idx) => {
+          if (!productSnap.exists) return;
+          const item = items[idx];
+          const product = productSnap.data();
+          const current = product.currentStock || 0;
+          const newCurrent = current + item.quantity;
+          tx.update(productRefs[idx], { currentStock: newCurrent, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+
+          const movementRef = db.collection('inventory_movements').doc();
+          tx.set(movementRef, {
+            productId: item.productId,
+            storeId: order.storeId,
+            type: 'returned',
+            quantityBefore: current,
+            quantityChanged: item.quantity,
+            quantityAfter: newCurrent,
+            reason: 'Order cancelled — stock returned',
+            relatedOrderId: orderId,
+            relatedReservationId: null,
+            relatedDeliveryId: null,
+            performedByUserId: uid,
+            performedByName: order.consumerName || '',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        });
+      } else if (action === 'cancel' && order.status === 'pendingPayment') {
+        const productRefs = items.map((i) => db.collection('products').doc(i.productId));
+        const productSnaps = await Promise.all(productRefs.map((r) => tx.get(r)));
+
+        productSnaps.forEach((productSnap, idx) => {
+          if (!productSnap.exists) return;
+          const item = items[idx];
+          const product = productSnap.data();
+          const reserved = product.reservedStock || 0;
+          const newReserved = Math.max(0, reserved - item.quantity);
+          tx.update(productRefs[idx], { reservedStock: newReserved, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+
+          const movementRef = db.collection('inventory_movements').doc();
+          tx.set(movementRef, {
+            productId: item.productId,
+            storeId: order.storeId,
+            type: 'reservationReleased',
+            quantityBefore: reserved,
+            quantityChanged: -item.quantity,
+            quantityAfter: newReserved,
+            reason: 'Order cancelled — held stock released',
+            relatedOrderId: orderId,
+            relatedReservationId: null,
+            relatedDeliveryId: null,
+            performedByUserId: uid,
+            performedByName: order.consumerName || '',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        });
+      }
+
+      const newStatus = NEXT_STATUS[action];
+      tx.update(orderRef, {
+        status: newStatus,
+        cancellationReason: action === 'cancel' ? (reason || null) : (order.cancellationReason || null),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      if (action === 'refund') {
+        const paymentRef = db.collection('payments').doc(orderId);
+        const paymentSnap = await tx.get(paymentRef);
+        if (paymentSnap.exists) {
+          tx.update(paymentRef, { status: 'refunded', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+        }
+        const transactionRef = db.collection('transactions').doc(orderId);
+        const transactionSnap = await tx.get(transactionRef);
+        if (transactionSnap.exists) {
+          tx.update(transactionRef, { reversed: true, reversedAt: admin.firestore.FieldValue.serverTimestamp() });
+        }
+      }
+    });
+
+    const orderSnap = await db.collection('orders').doc(orderId).get();
+    const order = orderSnap.exists ? orderSnap.data() : null;
+    if (order) {
+      const notifyTargetId = uid === order.merchantId ? order.consumerId : order.merchantId;
+      await db.collection('notifications').add({
+        userId: notifyTargetId,
+        type: 'orderStatusUpdate',
+        title: 'Order update',
+        message: `Your order from ${order.storeName} is now ${NEXT_STATUS[action]}.`,
+        relatedRecordId: orderId,
+        relatedRecordType: 'order',
+        read: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+
+    res.json({ status: NEXT_STATUS[action] });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Could not update order.' });
+  }
+});
+
+const PORT = process.env.PORT || 8080;

@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../../../core/providers/firebase_providers.dart';
 import '../../../models/order.dart';
 
@@ -16,8 +18,8 @@ class OrderActionException implements Exception {
 /// same way reservation actions are (module 6).
 class OrderRepository {
   final FirebaseFirestore _db;
-  final FirebaseFunctions _functions;
-  OrderRepository(this._db, this._functions);
+  final FirebaseAuth _auth;
+  OrderRepository(this._db, this._auth);
 
   Stream<List<Order>> watchConsumerOrders(String consumerId) {
     return _db
@@ -42,13 +44,21 @@ class OrderRepository {
 
   Future<void> _act(String orderId, String action, {String? reason}) async {
     try {
-      await _functions.httpsCallable('updateOrderStatus').call<Map<String, dynamic>>({
-        'orderId': orderId,
-        'action': action,
-        'reason': reason,
-      });
-    } on FirebaseFunctionsException catch (e) {
-      throw OrderActionException(e.message ?? 'Could not update this order.');
+      final user = _auth.currentUser;
+      if (user == null) throw OrderActionException('Not signed in.');
+      final token = await user.getIdToken();
+      final resp = await http.post(
+        Uri.parse('https://salwanaapp.onrender.com/updateOrderStatus'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+        body: jsonEncode({'orderId': orderId, 'action': action, 'reason': reason}),
+      );
+      if (resp.statusCode >= 400) {
+        final body = jsonDecode(resp.body);
+        throw OrderActionException(body['error'] ?? 'Could not update this order.');
+      }
+    } catch (e) {
+      if (e is OrderActionException) rethrow;
+      throw OrderActionException(e.toString());
     }
   }
 
@@ -61,7 +71,7 @@ class OrderRepository {
 }
 
 final orderRepositoryProvider = Provider<OrderRepository>((ref) {
-  return OrderRepository(ref.watch(firestoreProvider), ref.watch(firebaseFunctionsProvider));
+  return OrderRepository(ref.watch(firestoreProvider), ref.watch(firebaseAuthProvider));
 });
 
 final consumerOrdersProvider = StreamProvider<List<Order>>((ref) {
