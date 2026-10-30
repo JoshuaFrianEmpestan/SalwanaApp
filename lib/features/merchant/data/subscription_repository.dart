@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../../../core/constants/enums.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../models/subscription.dart';
@@ -21,8 +23,8 @@ const _premiumPlanId = 'premium';
 /// a merchant should never see "no plan available" on a fresh install.
 class SubscriptionRepository {
   final FirebaseFirestore _db;
-  final FirebaseFunctions _functions;
-  SubscriptionRepository(this._db, this._functions);
+  final FirebaseAuth _auth;
+  SubscriptionRepository(this._db, this._auth);
 
   CollectionReference<Map<String, dynamic>> get _plans => _db.collection('subscription_plans');
 
@@ -73,19 +75,28 @@ class SubscriptionRepository {
         .map((d) => d.exists ? MerchantSubscription.fromMap(d.id, d.data()!) : null);
   }
 
-  /// Simulated upgrade (§14 — no real payment gateway). Always 30 days
-  /// from now; re-subscribing while still active simply extends it.
   Future<void> subscribeToPremium() async {
     try {
-      await _functions.httpsCallable('subscribeToPremium').call<Map<String, dynamic>>();
-    } on FirebaseFunctionsException catch (e) {
-      throw SubscriptionException(e.message ?? 'Could not activate Premium. Please try again.');
+      final user = _auth.currentUser;
+      if (user == null) throw SubscriptionException('Not signed in.');
+      final token = await user.getIdToken();
+      final resp = await http.post(
+        Uri.parse('https://salwanaapp.onrender.com/subscribeToPremium'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+      );
+      if (resp.statusCode >= 400) {
+        final body = jsonDecode(resp.body);
+        throw SubscriptionException(body['error'] ?? 'Could not activate Premium. Please try again.');
+      }
+    } catch (e) {
+      if (e is SubscriptionException) rethrow;
+      throw SubscriptionException(e.toString());
     }
   }
 }
 
 final subscriptionRepositoryProvider = Provider<SubscriptionRepository>((ref) {
-  return SubscriptionRepository(ref.watch(firestoreProvider), ref.watch(firebaseFunctionsProvider));
+  return SubscriptionRepository(ref.watch(firestoreProvider), ref.watch(firebaseAuthProvider));
 });
 
 final subscriptionPlansProvider = StreamProvider<List<SubscriptionPlan>>((ref) {

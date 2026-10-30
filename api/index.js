@@ -1027,4 +1027,47 @@ app.post('/updateReservationStatus', verifyAuth, async (req, res) => {
   }
 });
 
+app.post('/subscribeToPremium', verifyAuth, async (req, res) => {
+  try {
+    const uid = req.uid;
+    const userSnap = await db.collection('users').doc(uid).get();
+    if (!userSnap.exists || userSnap.data().role !== 'merchant') return badRequest(res, 'Only merchant accounts can subscribe.');
+
+    const subscriptionRef = db.collection('subscriptions').doc(uid);
+    const existingSnap = await subscriptionRef.get();
+    const now = Date.now();
+    const currentExpiry = existingSnap.exists ? (existingSnap.data().expiresAt ? existingSnap.data().expiresAt.toMillis() : null) : null;
+    const base = (currentExpiry && currentExpiry > now) ? currentExpiry : now;
+    const expiresAtMs = base + 30 * 24 * 60 * 60 * 1000;
+    const expiresAt = admin.firestore.Timestamp.fromMillis(expiresAtMs);
+
+    await subscriptionRef.set({
+      merchantId: uid,
+      storeId: uid,
+      planId: 'premium',
+      tier: 'premium',
+      startedAt: existingSnap.exists ? (existingSnap.data().startedAt || admin.firestore.FieldValue.serverTimestamp()) : admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt,
+      autoRenew: false,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: existingSnap.exists ? (existingSnap.data().createdAt || admin.firestore.FieldValue.serverTimestamp()) : admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    await db.collection('notifications').add({
+      userId: uid,
+      type: 'general',
+      title: 'Premium activated',
+      message: 'Your Salwana Premium subscription is now active.',
+      relatedRecordId: uid,
+      relatedRecordType: 'subscription',
+      read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ expiresAtIso: new Date(expiresAtMs).toISOString() });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Could not activate Premium.' });
+  }
+});
+
 const PORT = process.env.PORT || 8080;
