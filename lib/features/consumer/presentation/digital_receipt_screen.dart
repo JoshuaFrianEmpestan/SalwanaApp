@@ -221,41 +221,79 @@ class _DigitalReceiptScreenState extends ConsumerState<DigitalReceiptScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _exporting ? null : () => Navigator.of(context).maybePop(),
-                        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
-                        icon: const Icon(Icons.arrow_back_rounded, size: 16),
-                        label: const Text('Back', maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final wide = constraints.maxWidth >= 360;
+                    final backBtn = OutlinedButton(
+                      onPressed: _exporting ? null : () => Navigator.of(context).maybePop(),
+                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.arrow_back_rounded, size: 16),
+                          SizedBox(width: 6),
+                          Flexible(child: Text('Back', maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis)),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _exporting ? null : () {
-                          final r = receipt;
-                          _print(r);
-                        },
-                        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
-                        icon: const Icon(Icons.print_rounded, size: 16),
-                        label: const Text('Print', maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis),
+                    );
+                    final printBtn = OutlinedButton(
+                      onPressed: _exporting ? null : () {
+                        final r = receipt;
+                        _print(r);
+                      },
+                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.print_rounded, size: 16),
+                          SizedBox(width: 6),
+                          Flexible(child: Text('Print', maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis)),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: _exporting ? null : () {
-                          final r = receipt;
-                          _download(r);
-                        },
-                        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
-                        icon: const Icon(Icons.download_rounded, size: 16),
-                        label: const Text('Download', maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis),
+                    );
+                    final downloadBtn = FilledButton(
+                      onPressed: _exporting ? null : () {
+                        final r = receipt;
+                        _download(r);
+                      },
+                      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.download_rounded, size: 16),
+                          SizedBox(width: 6),
+                          Flexible(child: Text('Download', maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis)),
+                        ],
                       ),
-                    ),
-                  ],
+                    );
+                    if (wide) {
+                      return Row(
+                        children: [
+                          Expanded(child: backBtn),
+                          const SizedBox(width: 10),
+                          Expanded(child: printBtn),
+                          const SizedBox(width: 10),
+                          Expanded(child: downloadBtn),
+                        ],
+                      );
+                    }
+                    return Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: backBtn),
+                            const SizedBox(width: 10),
+                            Expanded(child: printBtn),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(width: double.infinity, child: downloadBtn),
+                      ],
+                    );
+                  },
                 ),
               ],
             );
