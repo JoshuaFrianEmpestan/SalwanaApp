@@ -18,7 +18,7 @@ class SupplierTransactionsScreen extends ConsumerWidget {
     final requestsAsync = ref.watch(supplierRestockRequestsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Transactions')),
+      appBar: AppBar(leading: const BackButton(), title: const Text('Transactions')),
       body: SafeArea(
         child: requestsAsync.when(
           loading: () => const LoadingListView(),
