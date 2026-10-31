@@ -93,7 +93,7 @@ class _ReservationDetailScreenState extends ConsumerState<ReservationDetailScree
                         width: 64,
                         height: 64,
                         child: reservation.productImageUrl != null
-                            ? CachedNetworkImage(imageUrl: reservation.productImageUrl!, fit: BoxFit.cover)
+                            ? CachedNetworkImage(fadeInDuration: Duration.zero, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: reservation.productImageUrl!, fit: BoxFit.cover)
                             : Container(color: AppColors.neutralBg, child: const Icon(Icons.inventory_2_outlined, color: AppColors.textSecondary)),
                       ),
                     ),

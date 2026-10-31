@@ -120,7 +120,7 @@ class _CartItemTile extends ConsumerWidget {
               width: 56,
               height: 56,
               child: item.productImageUrl != null
-                  ? CachedNetworkImage(imageUrl: item.productImageUrl!, fit: BoxFit.cover)
+                  ? CachedNetworkImage(fadeInDuration: Duration.zero, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: item.productImageUrl!, fit: BoxFit.cover)
                   : Container(color: AppColors.neutralBg, child: const Icon(Icons.inventory_2_outlined, color: AppColors.textSecondary)),
             ),
           ),

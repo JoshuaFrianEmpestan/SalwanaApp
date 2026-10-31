@@ -27,7 +27,7 @@ class StoreCard extends StatelessWidget {
               width: 84,
               height: 84,
               child: store.logoUrl != null
-                  ? CachedNetworkImage(imageUrl: store.logoUrl!, fit: BoxFit.cover)
+                  ? CachedNetworkImage(fadeInDuration: Duration.zero, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: store.logoUrl!, fit: BoxFit.cover)
                   : Container(
                       color: AppColors.primarySurface,
                       child: const Icon(Icons.storefront_rounded, color: AppColors.primary, size: 32),
