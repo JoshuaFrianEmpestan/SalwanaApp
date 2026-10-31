@@ -345,6 +345,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/merchant/order-details/:id',
         builder: (context, state) => OrderDetailScreen(orderId: state.pathParameters['id']!),
       ),
+      GoRoute(path: '/merchant/orders/:id/receipt', builder: (context, state) => DigitalReceiptScreen(orderId: state.pathParameters['id']!)),
       GoRoute(
         path: '/consumer/products/:id/reserve',
         builder: (context, state) => ReserveProductScreen(

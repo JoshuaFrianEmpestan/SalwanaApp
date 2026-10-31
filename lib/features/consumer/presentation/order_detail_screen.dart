@@ -130,7 +130,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                     PrimaryButton(label: 'Pay Now', onPressed: () => context.push('/consumer/orders/${order.id}/pay')),
                 if (order.status.index > OrderStatus.pendingPayment.index && order.status != OrderStatus.paymentFailed && order.status != OrderStatus.cancelled) ...[
                   const SizedBox(height: 10),
-                  OutlinedButton(onPressed: () => context.push('/consumer/orders/${order.id}/receipt'), child: const Text('View Receipt')),
+                  OutlinedButton(onPressed: () => context.push(isMerchant ? '/merchant/orders/${order.id}/receipt' : '/consumer/orders/${order.id}/receipt'), child: const Text('View Receipt')),
                 ],
                 if (isConsumer && order.status == OrderStatus.completed) ...[
                   const SizedBox(height: 10),

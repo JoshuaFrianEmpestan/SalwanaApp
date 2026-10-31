@@ -1175,10 +1175,13 @@ app.post('/updateReservationStatus', verifyAuth, async (req, res) => {
       }
 
       const newStatus = RES_NEXT_STATUS[action];
+      // Only read the product document when the action actually needs it
+      // (stock release on reject/cancel, or stock deduction on complete).
+      const needsProduct = RELEASING_ACTIONS.has(action) || action === 'completed';
       const productRef = db.collection('products').doc(reservation.productId);
-      const productSnap = await tx.get(productRef);
+      const productSnap = needsProduct ? await tx.get(productRef) : null;
 
-      if ((RELEASING_ACTIONS.has(action) || action === 'completed') && productSnap.exists) {
+      if (needsProduct && productSnap && productSnap.exists) {
         const product = productSnap.data();
         const reserved = product.reservedStock || 0;
         const current = product.currentStock || 0;
