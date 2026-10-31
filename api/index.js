@@ -1078,6 +1078,20 @@ app.post('/updateOrderStatus', verifyAuth, async (req, res) => {
         });
       }
 
+      // Prevent duplicate refunds: only completed orders are refundable
+      // (ALLOWED_FROM['refund'] == ['completed']), so a second refund attempt
+      // is rejected by the status check above.
+
+      // Read all needed documents BEFORE any writes (Firestore transaction rule).
+      const paymentRef = db.collection('payments').doc(orderId);
+      const transactionRef = db.collection('transactions').doc(orderId);
+      let paymentSnap = null;
+      let transactionSnap = null;
+      if (action === 'refund') {
+        paymentSnap = await tx.get(paymentRef);
+        transactionSnap = await tx.get(transactionRef);
+      }
+
       const newStatus = NEXT_STATUS[action];
       tx.update(orderRef, {
         status: newStatus,
@@ -1086,14 +1100,10 @@ app.post('/updateOrderStatus', verifyAuth, async (req, res) => {
       });
 
       if (action === 'refund') {
-        const paymentRef = db.collection('payments').doc(orderId);
-        const paymentSnap = await tx.get(paymentRef);
-        if (paymentSnap.exists) {
+        if (paymentSnap && paymentSnap.exists) {
           tx.update(paymentRef, { status: 'refunded', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
         }
-        const transactionRef = db.collection('transactions').doc(orderId);
-        const transactionSnap = await tx.get(transactionRef);
-        if (transactionSnap.exists) {
+        if (transactionSnap && transactionSnap.exists) {
           tx.update(transactionRef, { reversed: true, reversedAt: admin.firestore.FieldValue.serverTimestamp() });
         }
       }
@@ -1228,11 +1238,13 @@ app.post('/updateReservationStatus', verifyAuth, async (req, res) => {
 
     const reservationSnap = await db.collection('reservations').doc(reservationId).get();
     const reservation = reservationSnap.exists ? reservationSnap.data() : null;
+    // Respond immediately; send the consumer notification in the background.
+    res.json({ status: RES_NEXT_STATUS[action] });
     if (reservation) {
       const notifyConsumerTypes = { approve: 'reservationApproved', reject: 'reservationRejected' };
       const notifType = notifyConsumerTypes[action];
       if (notifType) {
-        await db.collection('notifications').add({
+        db.collection('notifications').add({
           userId: reservation.consumerId,
           type: notifType,
           title: action === 'approve' ? 'Reservation approved' : 'Reservation rejected',
@@ -1243,11 +1255,9 @@ app.post('/updateReservationStatus', verifyAuth, async (req, res) => {
           relatedRecordType: 'reservation',
           read: false,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
+        }).catch(() => {});
       }
     }
-
-    res.json({ status: RES_NEXT_STATUS[action] });
   } catch (e) {
     res.status(400).json({ error: e.message || 'Could not update reservation.' });
   }
