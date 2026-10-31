@@ -42,7 +42,7 @@ class SupplierProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 const Text('Business', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
                  ProfileMenuTile(icon: Icons.business_outlined, label: 'Company Profile', onTap: () => context.push('/supplier/company')),
-                 ProfileMenuTile(icon: Icons.receipt_long_outlined, label: 'Payment History', onTap: () => context.go('/supplier/transactions')),
+                 ProfileMenuTile(icon: Icons.receipt_long_outlined, label: 'Payment History', onTap: () => context.push('/supplier/transactions')),
                 const SizedBox(height: 12),
                 const Text('Account', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
                 ProfileMenuTile(icon: Icons.person_outline_rounded, label: 'Edit Profile', onTap: () => context.push('/supplier/profile/edit')),
