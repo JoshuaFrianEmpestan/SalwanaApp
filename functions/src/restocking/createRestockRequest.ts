@@ -42,19 +42,23 @@ export const createRestockRequest = onCall<CreateRestockRequestRequest>(async (r
   const supplier = supplierSnap.data()!;
   if (supplier.verificationStatus !== "active") badRequest(`${supplier.companyName} is not currently available.`);
 
-  const productRefs = items.map((i: RequestItemInput) => db.collection("products").doc(i.productId));
+  const productRefs = items.map((i: RequestItemInput) => db.collection("supplier_products").doc(i.productId));
   const productSnaps = await Promise.all(productRefs.map((r) => r.get()));
 
   const requestItems = productSnaps.map((snap, idx) => {
-    if (!snap.exists) badRequest("A selected product no longer exists.");
+    if (!snap.exists) badRequest("A selected product no longer exists in the supplier catalog.");
     const product = snap.data()!;
-    if (product.merchantId !== uid) badRequest("You can only request restocking for your own products.");
+    if (product.supplierId !== supplierId) badRequest("You can only request products from the selected supplier.");
+    if (product.isAvailable === false) badRequest(`${product.name} is no longer available.`);
+    if (items[idx].requestedQuantity < (product.minOrderQuantity ?? 1)) {
+      badRequest(`${product.name}: minimum order quantity is ${product.minOrderQuantity}.`);
+    }
     return {
       productId: snap.id,
       productName: product.name,
       requestedQuantity: items[idx].requestedQuantity,
       receivedQuantity: null,
-      estimatedUnitCost: items[idx].estimatedUnitCost ?? 0,
+      estimatedUnitCost: items[idx].estimatedUnitCost ?? product.unitCost ?? 0,
     };
   });
 
