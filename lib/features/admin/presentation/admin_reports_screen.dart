@@ -71,6 +71,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
     setState(() => _exporting = true);
     try {
       await action();
+      if (mounted) showAppSnackBar(context, 'Export complete — check your downloads.');
     } catch (e) {
       if (mounted) showAppSnackBar(context, 'Export failed: $e', isError: true);
     } finally {

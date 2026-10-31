@@ -1,4 +1,5 @@
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
+import '../../core/utils/file_download.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:excel/excel.dart' as xls;
 import 'package:firebase_storage/firebase_storage.dart';
@@ -77,7 +78,11 @@ class ReportExportService {
       await _persist(bytes: bytes, fileName: fileName, format: 'pdf', title: result.title, generatedByUserId: generatedByUserId, storeId: storeId);
     }
 
-    await Printing.sharePdf(bytes: bytes, filename: fileName);
+    if (kIsWeb) {
+      downloadBytes(bytes, fileName, 'application/pdf');
+    } else {
+      await Printing.sharePdf(bytes: bytes, filename: fileName);
+    }
   }
 
   Future<void> exportExcel(ReportResult result, {String? generatedByUserId, String? storeId}) async {
@@ -103,10 +108,14 @@ class ReportExportService {
       await _persist(bytes: bytes, fileName: fileName, format: 'excel', title: result.title, generatedByUserId: generatedByUserId, storeId: storeId);
     }
 
-    await Share.shareXFiles(
-      [XFile.fromData(bytes, name: fileName, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')],
-      text: result.title,
-    );
+    if (kIsWeb) {
+      downloadBytes(bytes, fileName, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    } else {
+      await Share.shareXFiles(
+        [XFile.fromData(bytes, name: fileName, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')],
+        text: result.title,
+      );
+    }
   }
 
   Future<void> _persist({
