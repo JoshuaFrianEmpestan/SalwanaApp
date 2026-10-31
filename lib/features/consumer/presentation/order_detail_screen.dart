@@ -186,14 +186,22 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
           label: 'Issue Refund',
           outlined: true,
           onPressed: () async {
-            final confirmed = await showConfirmDialog(
+            final first = await showConfirmDialog(
               context,
               title: 'Issue Refund',
-              message: 'Are you sure you want to refund this order? The order total of ${AppFormatters.currency(order.total)} will be recorded as refunded and the order will be marked as refunded.',
-              confirmLabel: 'Issue Refund',
+              message: 'Are you sure you want to refund this order? The order total of ${AppFormatters.currency(order.total)} will be recorded as refunded.',
+              confirmLabel: 'Continue',
               destructive: true,
             );
-            if (confirmed) await _act(() => repo.refund(order.id));
+            if (!first) return;
+            final second = await showConfirmDialog(
+              context,
+              title: 'Confirm Refund',
+              message: 'This action cannot be undone. Confirm refund of ${AppFormatters.currency(order.total)} for order ${order.id.substring(0, 8).toUpperCase()}?',
+              confirmLabel: 'Confirm Refund',
+              destructive: true,
+            );
+            if (second) await _act(() => repo.refund(order.id));
           },
           loading: _acting,
         ));

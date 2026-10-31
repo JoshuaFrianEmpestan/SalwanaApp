@@ -1111,9 +1111,11 @@ app.post('/updateOrderStatus', verifyAuth, async (req, res) => {
 
     const orderSnap = await db.collection('orders').doc(orderId).get();
     const order = orderSnap.exists ? orderSnap.data() : null;
+    // Respond immediately; send the notification in the background.
+    res.json({ status: NEXT_STATUS[action] });
     if (order) {
       const notifyTargetId = uid === order.merchantId ? order.consumerId : order.merchantId;
-      await db.collection('notifications').add({
+      db.collection('notifications').add({
         userId: notifyTargetId,
         type: 'orderStatusUpdate',
         title: 'Order update',
@@ -1122,10 +1124,8 @@ app.post('/updateOrderStatus', verifyAuth, async (req, res) => {
         relatedRecordType: 'order',
         read: false,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+      }).catch(() => {});
     }
-
-    res.json({ status: NEXT_STATUS[action] });
   } catch (e) {
     res.status(400).json({ error: e.message || 'Could not update order.' });
   }
