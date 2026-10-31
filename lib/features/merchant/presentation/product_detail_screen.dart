@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,6 +16,7 @@ import '../../../core/widgets/status_badge.dart';
 import '../../../models/product.dart';
 import '../data/product_repository.dart';
 import '../data/store_repository.dart';
+import '../../../core/widgets/app_network_image.dart';
 
 class ProductDetailScreen extends ConsumerStatefulWidget {
   final String productId;
@@ -117,7 +117,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   child: AspectRatio(
                     aspectRatio: 16 / 10,
                     child: product.imageUrls.isNotEmpty
-                        ? CachedNetworkImage(fadeInDuration: Duration.zero, useOldImageOnUrlChange: true, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: product.imageUrls.first, fit: BoxFit.cover)
+                        ? AppNetworkImage(imageUrl: product.imageUrls.first, fit: BoxFit.cover)
                         : Container(color: AppColors.neutralBg, child: const Icon(Icons.inventory_2_outlined, size: 48, color: AppColors.textSecondary)),
                   ),
                 ),

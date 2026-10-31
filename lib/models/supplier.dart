@@ -6,10 +6,15 @@ class SupplierProfile {
   final String id;
   final String userId;
   final String companyName;
+  final String? companyDescription;
+  final String? logoUrl;
   final String contactName;
   final String phone;
   final String email;
   final String address;
+  final String? city;
+  final String? province;
+  final String? postalCode;
   final List<String> suppliedCategories;
   final AccountStatus verificationStatus;
   final String? verificationNote;
@@ -20,10 +25,15 @@ class SupplierProfile {
     required this.id,
     required this.userId,
     required this.companyName,
+    this.companyDescription,
+    this.logoUrl,
     required this.contactName,
     required this.phone,
     required this.email,
     required this.address,
+    this.city,
+    this.province,
+    this.postalCode,
     this.suppliedCategories = const [],
     required this.verificationStatus,
     this.verificationNote,
@@ -35,10 +45,15 @@ class SupplierProfile {
         id: id,
         userId: map['userId'] ?? '',
         companyName: map['companyName'] ?? '',
+        companyDescription: map['companyDescription'],
+        logoUrl: map['logoUrl'],
         contactName: map['contactName'] ?? '',
         phone: map['phone'] ?? '',
         email: map['email'] ?? '',
         address: map['address'] ?? '',
+        city: map['city'],
+        province: map['province'],
+        postalCode: map['postalCode'],
         suppliedCategories: List<String>.from(map['suppliedCategories'] ?? const []),
         verificationStatus: AccountStatusX.fromName(map['verificationStatus'] ?? 'pendingVerification'),
         verificationNote: map['verificationNote'],
@@ -49,10 +64,15 @@ class SupplierProfile {
   Map<String, dynamic> toMap() => {
         'userId': userId,
         'companyName': companyName,
+        'companyDescription': companyDescription,
+        'logoUrl': logoUrl,
         'contactName': contactName,
         'phone': phone,
         'email': email,
         'address': address,
+        'city': city,
+        'province': province,
+        'postalCode': postalCode,
         'suppliedCategories': suppliedCategories,
         'verificationStatus': verificationStatus.name,
         'verificationNote': verificationNote,

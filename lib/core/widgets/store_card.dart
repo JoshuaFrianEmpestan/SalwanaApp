@@ -1,7 +1,7 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../models/store.dart';
 import '../theme/app_colors.dart';
+import 'app_network_image.dart';
 
 class StoreCard extends StatelessWidget {
   final Store store;
@@ -27,7 +27,7 @@ class StoreCard extends StatelessWidget {
               width: 84,
               height: 84,
               child: store.logoUrl != null
-                  ? CachedNetworkImage(fadeInDuration: Duration.zero, useOldImageOnUrlChange: true, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: store.logoUrl!, fit: BoxFit.cover)
+                  ? AppNetworkImage(imageUrl: store.logoUrl!, fit: BoxFit.cover)
                   : Container(
                       color: AppColors.primarySurface,
                       child: const Icon(Icons.storefront_rounded, color: AppColors.primary, size: 32),

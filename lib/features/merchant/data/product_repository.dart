@@ -119,3 +119,18 @@ final storeProductsProvider = StreamProvider.family<List<Product>, String>((ref,
     print('storeProductsProvider error: $e');
   });
 });
+
+
+final merchantCategoriesProvider = Provider.family<List<String>, String>((ref, merchantId) {
+  final products = ref.watch(storeProductsProvider(merchantId)).valueOrNull ?? const [];
+  final seen = <String>{};
+  final result = <String>[];
+  for (final p in products) {
+    final c = p.category.trim();
+    if (c.isEmpty) continue;
+    final key = c.toLowerCase();
+    if (seen.add(key)) result.add(c);
+  }
+  result.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  return result;
+});

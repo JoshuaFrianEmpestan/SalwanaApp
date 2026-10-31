@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,6 +13,7 @@ import '../../merchant/data/product_repository.dart';
 import '../../merchant/data/store_repository.dart';
 import '../data/cart_repository.dart';
 import '../data/followed_product_repository.dart';
+import '../../../core/widgets/app_network_image.dart';
 
 class ConsumerProductDetailScreen extends ConsumerStatefulWidget {
   final String productId;
@@ -70,7 +70,7 @@ class _ConsumerProductDetailScreenState extends ConsumerState<ConsumerProductDet
                           child: Hero(
                             tag: 'product-image-${product.id}',
                             child: product.imageUrls.isNotEmpty
-                                ? CachedNetworkImage(fadeInDuration: Duration.zero, useOldImageOnUrlChange: true, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: product.imageUrls.first, fit: BoxFit.cover)
+                                ? AppNetworkImage(imageUrl: product.imageUrls.first, fit: BoxFit.cover)
                                 : Container(color: AppColors.neutralBg, child: const Icon(Icons.inventory_2_outlined, size: 48, color: AppColors.textSecondary)),
                           ),
                         ),
@@ -122,7 +122,7 @@ class _ConsumerProductDetailScreenState extends ConsumerState<ConsumerProductDet
                                       width: 44,
                                       height: 44,
                                       child: store.logoUrl != null
-                                          ? CachedNetworkImage(fadeInDuration: Duration.zero, useOldImageOnUrlChange: true, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: store.logoUrl!, fit: BoxFit.cover)
+                                          ? AppNetworkImage(imageUrl: store.logoUrl!, fit: BoxFit.cover)
                                           : Container(color: AppColors.primarySurface, child: const Icon(Icons.storefront_rounded, color: AppColors.primary, size: 20)),
                                     ),
                                   ),

@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/enums.dart';
@@ -12,6 +11,7 @@ import '../../../core/widgets/state_views.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../models/reservation.dart';
 import '../data/reservation_repository.dart';
+import '../../../core/widgets/app_network_image.dart';
 
 /// Shared by both the consumer and merchant nav — which actions are shown
 /// is derived purely from the signed-in user's role and ownership of the
@@ -93,7 +93,7 @@ class _ReservationDetailScreenState extends ConsumerState<ReservationDetailScree
                         width: 64,
                         height: 64,
                         child: reservation.productImageUrl != null
-                            ? CachedNetworkImage(fadeInDuration: Duration.zero, useOldImageOnUrlChange: true, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: reservation.productImageUrl!, fit: BoxFit.cover)
+                            ? AppNetworkImage(imageUrl: reservation.productImageUrl!, fit: BoxFit.cover)
                             : Container(color: AppColors.neutralBg, child: const Icon(Icons.inventory_2_outlined, color: AppColors.textSecondary)),
                       ),
                     ),

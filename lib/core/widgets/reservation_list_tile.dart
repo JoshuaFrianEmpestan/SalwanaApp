@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../models/reservation.dart';
 import '../constants/enums.dart';
@@ -6,6 +5,7 @@ import '../theme/app_colors.dart';
 import '../utils/formatters.dart';
 import 'reservation_status_visuals.dart';
 import 'status_badge.dart';
+import 'app_network_image.dart';
 
 class ReservationListTile extends StatelessWidget {
   final Reservation reservation;
@@ -31,7 +31,7 @@ class ReservationListTile extends StatelessWidget {
                 width: 52,
                 height: 52,
                 child: reservation.productImageUrl != null
-                    ? CachedNetworkImage(fadeInDuration: Duration.zero, useOldImageOnUrlChange: true, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: reservation.productImageUrl!, fit: BoxFit.cover)
+                    ? AppNetworkImage(imageUrl: reservation.productImageUrl!, fit: BoxFit.cover)
                     : Container(color: AppColors.neutralBg, child: const Icon(Icons.inventory_2_outlined, color: AppColors.textSecondary)),
               ),
             ),

@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +10,7 @@ import '../../../core/widgets/status_badge.dart';
 import '../../merchant/data/store_repository.dart';
 import '../data/catalog_repository.dart';
 import '../data/order_repository.dart';
+import '../../../core/widgets/app_network_image.dart';
 
 class StoreDetailScreen extends ConsumerWidget {
   final String storeId;
@@ -40,7 +40,7 @@ class StoreDetailScreen extends ConsumerWidget {
                   foregroundColor: AppColors.textPrimary,
                   flexibleSpace: FlexibleSpaceBar(
                     background: store.bannerUrl != null
-                        ? CachedNetworkImage(fadeInDuration: Duration.zero, useOldImageOnUrlChange: true, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: store.bannerUrl!, fit: BoxFit.cover)
+                        ? AppNetworkImage(imageUrl: store.bannerUrl!, fit: BoxFit.cover)
                         : Container(color: AppColors.primarySurface),
                   ),
                 ),
@@ -59,7 +59,7 @@ class StoreDetailScreen extends ConsumerWidget {
                                 width: 64,
                                 height: 64,
                                 child: store.logoUrl != null
-                                    ? CachedNetworkImage(fadeInDuration: Duration.zero, useOldImageOnUrlChange: true, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: store.logoUrl!, fit: BoxFit.cover)
+                                    ? AppNetworkImage(imageUrl: store.logoUrl!, fit: BoxFit.cover)
                                     : Container(color: AppColors.primarySurface, child: const Icon(Icons.storefront_rounded, color: AppColors.primary)),
                               ),
                             ),

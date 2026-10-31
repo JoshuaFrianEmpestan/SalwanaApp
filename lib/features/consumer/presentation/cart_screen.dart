@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +9,7 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../models/cart_item.dart';
 import '../data/cart_repository.dart';
+import '../../../core/widgets/app_network_image.dart';
 
 class CartScreen extends ConsumerWidget {
   const CartScreen({super.key});
@@ -120,7 +120,7 @@ class _CartItemTile extends ConsumerWidget {
               width: 56,
               height: 56,
               child: item.productImageUrl != null
-                  ? CachedNetworkImage(fadeInDuration: Duration.zero, useOldImageOnUrlChange: true, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: item.productImageUrl!, fit: BoxFit.cover)
+                  ? AppNetworkImage(imageUrl: item.productImageUrl!, fit: BoxFit.cover)
                   : Container(color: AppColors.neutralBg, child: const Icon(Icons.inventory_2_outlined, color: AppColors.textSecondary)),
             ),
           ),

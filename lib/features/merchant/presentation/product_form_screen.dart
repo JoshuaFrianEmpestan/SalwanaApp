@@ -205,7 +205,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                 AppTextField(controller: _description, label: 'Description', maxLines: 3, validator: (v) => Validators.required(v, field: 'Description')),
                 const SizedBox(height: 14),
                 Row(children: [
-                  Expanded(child: AppTextField(controller: _category, label: 'Category', validator: (v) => Validators.required(v, field: 'Category'))),
+                  Expanded(child: _CategoryField(controller: _category, merchantId: merchantId, onChanged: () => setState(() {}))),
                   const SizedBox(width: 12),
                   Expanded(child: AppTextField(controller: _brand, label: 'Brand', validator: (v) => Validators.required(v, field: 'Brand'))),
                 ]),
@@ -276,6 +276,192 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   Widget _seedOnce(Product product) {
     _seed(product);
     return const SizedBox.shrink();
+  }
+}
+
+
+
+class _CategoryField extends ConsumerStatefulWidget {
+  final TextEditingController controller;
+  final String merchantId;
+  final VoidCallback onChanged;
+  const _CategoryField({required this.controller, required this.merchantId, required this.onChanged});
+
+  @override
+  ConsumerState<_CategoryField> createState() => _CategoryFieldState();
+}
+
+class _CategoryFieldState extends ConsumerState<_CategoryField> {
+  Future<void> _openPicker(BuildContext context) async {
+    final categories = ref.read(merchantCategoriesProvider(widget.merchantId));
+    final chosen = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => _CategoryPickerSheet(
+        categories: categories,
+        selected: widget.controller.text.trim(),
+      ),
+    );
+    if (chosen != null) {
+      widget.controller.text = chosen;
+      widget.onChanged();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FormField<String>(
+      validator: (_) => Validators.required(widget.controller.text, field: 'Category'),
+      builder: (state) {
+        return InkWell(
+          onTap: () => _openPicker(context),
+          borderRadius: BorderRadius.circular(12),
+          child: InputDecorator(
+            decoration: InputDecoration(
+              labelText: 'Category',
+              isDense: true,
+              border: const OutlineInputBorder(),
+              errorText: state.errorText,
+              suffixIcon: const Icon(Icons.arrow_drop_down_rounded),
+            ),
+            child: Text(
+              widget.controller.text.trim().isEmpty ? 'Select category' : widget.controller.text.trim(),
+              style: TextStyle(
+                fontSize: 14,
+                color: widget.controller.text.trim().isEmpty ? AppColors.textDisabled : AppColors.textPrimary,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CategoryPickerSheet extends StatefulWidget {
+  final List<String> categories;
+  final String selected;
+  const _CategoryPickerSheet({required this.categories, required this.selected});
+
+  @override
+  State<_CategoryPickerSheet> createState() => _CategoryPickerSheetState();
+}
+
+class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
+  final _search = TextEditingController();
+  final _newCat = TextEditingController();
+  bool _showAdd = false;
+  String _query = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    _newCat.dispose();
+    super.dispose();
+  }
+
+  List<String> get _filtered {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return widget.categories;
+    return widget.categories.where((c) => c.toLowerCase().contains(q)).toList();
+  }
+
+  void _addNew() {
+    final value = _newCat.text.trim();
+    if (value.isEmpty) return;
+    // prevent duplicates case-insensitively - reuse the existing canonical form
+    final existing = widget.categories.firstWhere(
+      (c) => c.toLowerCase() == value.toLowerCase(),
+      orElse: () => value,
+    );
+    Navigator.of(context).pop(existing);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SafeArea(
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.6,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    const Text('Select Category', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                    const Spacer(),
+                    IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.close_rounded)),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: TextField(
+                  controller: _search,
+                  decoration: const InputDecoration(
+                    labelText: 'Search categories',
+                    prefixIcon: Icon(Icons.search_rounded),
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (v) => setState(() => _query = v),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: _filtered.isEmpty
+                    ? const Center(child: Text('No matching categories', style: TextStyle(color: AppColors.textSecondary)))
+                    : ListView.builder(
+                        itemCount: _filtered.length,
+                        itemBuilder: (ctx, i) {
+                          final c = _filtered[i];
+                          return ListTile(
+                            title: Text(c),
+                            trailing: c == widget.selected ? const Icon(Icons.check_rounded, color: AppColors.primary) : null,
+                            onTap: () => Navigator.of(context).pop(c),
+                          );
+                        },
+                      ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: _showAdd
+                    ? Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _newCat,
+                              autofocus: true,
+                              decoration: const InputDecoration(labelText: 'New category', isDense: true, border: OutlineInputBorder()),
+                              onSubmitted: (_) => _addNew(),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton.filled(
+                            onPressed: _addNew,
+                            icon: const Icon(Icons.check_rounded),
+                            style: IconButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+                          ),
+                          IconButton(
+                            onPressed: () => setState(() => _showAdd = false),
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                        ],
+                      )
+                    : OutlinedButton.icon(
+                        onPressed: () => setState(() => _showAdd = true),
+                        icon: const Icon(Icons.add_rounded),
+                        label: const Text('Add New Category'),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

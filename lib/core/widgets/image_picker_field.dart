@@ -1,11 +1,11 @@
 import 'dart:typed_data';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/cloudinary_upload_service.dart';
 import '../theme/app_colors.dart';
 import 'confirm_dialog.dart';
+import 'app_network_image.dart';
 
 /// Pick-and-upload image field. Handles the picker, the Storage upload, and
 /// the loading/local-preview/error states itself; the parent just gets the
@@ -84,7 +84,7 @@ class _ImagePickerFieldState extends ConsumerState<ImagePickerField> {
             if (_localBytes != null)
               Image.memory(_localBytes!, fit: BoxFit.cover)
             else if (widget.initialUrl?.isNotEmpty ?? false)
-              CachedNetworkImage(fadeInDuration: Duration.zero, useOldImageOnUrlChange: true, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: widget.initialUrl!, fit: BoxFit.cover)
+              AppNetworkImage(imageUrl: widget.initialUrl!, fit: BoxFit.cover)
             else
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,

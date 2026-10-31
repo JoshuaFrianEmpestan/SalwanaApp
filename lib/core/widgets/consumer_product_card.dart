@@ -1,8 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../models/product.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatters.dart';
+import 'app_network_image.dart';
 
 /// Grid card for consumer-facing product browsing (§1, §5). Shows exactly
 /// what a buyer needs to decide: photo, name, store, price, availability —
@@ -38,7 +38,7 @@ class ConsumerProductCard extends StatelessWidget {
                   Hero(
                     tag: 'product-image-${product.id}',
                     child: product.imageUrls.isNotEmpty
-                        ? CachedNetworkImage(fadeInDuration: Duration.zero, useOldImageOnUrlChange: true, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: product.imageUrls.first, fit: BoxFit.cover)
+                        ? AppNetworkImage(imageUrl: product.imageUrls.first, fit: BoxFit.cover)
                         : Container(color: AppColors.neutralBg, child: const Icon(Icons.inventory_2_outlined, color: AppColors.textSecondary, size: 32)),
                   ),
                   if (outOfStock)

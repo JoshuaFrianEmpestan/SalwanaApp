@@ -1,10 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../models/product.dart';
 import '../constants/enums.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatters.dart';
 import 'status_badge.dart';
+import 'app_network_image.dart';
 
 /// Product row used in the merchant inventory list. Shows the numbers a
 /// merchant actually needs at a glance: available vs reserved vs current,
@@ -36,7 +36,7 @@ class ProductListTile extends StatelessWidget {
                 width: 56,
                 height: 56,
                 child: product.imageUrls.isNotEmpty
-                    ? CachedNetworkImage(fadeInDuration: Duration.zero, useOldImageOnUrlChange: true, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: product.imageUrls.first, fit: BoxFit.cover)
+                    ? AppNetworkImage(imageUrl: product.imageUrls.first, fit: BoxFit.cover)
                     : Container(
                         color: AppColors.neutralBg,
                         child: const Icon(Icons.inventory_2_outlined, color: AppColors.textSecondary),
