@@ -1,4 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/firebase_providers.dart';
@@ -17,8 +20,9 @@ class RestockException implements Exception {
 /// reservations and orders.
 class RestockRepository {
   final FirebaseFirestore _db;
+  final FirebaseAuth _auth;
   final FirebaseFunctions _functions;
-  RestockRepository(this._db, this._functions);
+  RestockRepository(this._db, this._auth, this._functions);
 
   Stream<List<SupplierProfile>> watchActiveSuppliers() {
     return _db
@@ -42,33 +46,66 @@ class RestockRepository {
     String? notes,
   }) async {
     try {
-      final result = await _functions.httpsCallable('createRestockRequest').call<Map<String, dynamic>>({
-        'supplierId': supplierId,
-        'items': items
-            .map((i) => {
-                  'productId': i.productId,
-                  'requestedQuantity': i.requestedQuantity,
-                  'estimatedUnitCost': i.estimatedUnitCost,
-                })
-            .toList(),
-        'notes': notes,
-      });
-      return result.data['restockRequestId'] as String;
-    } on FirebaseFunctionsException catch (e) {
-      throw RestockException(e.message ?? 'Could not create restocking request.');
+      final user = _auth.currentUser;
+      if (user == null) throw RestockException('Not signed in.');
+      final token = await user.getIdToken();
+      final resp = await http.post(
+        Uri.parse('https://salwanaapp.onrender.com/createRestockRequest'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+        body: jsonEncode({
+          'supplierId': supplierId,
+          'items': items
+              .map((i) => {
+                    'productId': i.productId,
+                    'requestedQuantity': i.requestedQuantity,
+                    'estimatedUnitCost': i.estimatedUnitCost,
+                  })
+              .toList(),
+          'notes': notes,
+        }),
+      );
+      if (resp.statusCode >= 400) {
+        String msg = 'Could not create restocking request.';
+        try {
+          final body = jsonDecode(resp.body);
+          msg = body['error'] ?? msg;
+        } catch (_) {}
+        throw RestockException(msg);
+      }
+      final data = jsonDecode(resp.body);
+      return (data['restockRequestId'] as String?) ?? '';
+    } catch (e) {
+      if (e is RestockException) rethrow;
+      throw RestockException(e.toString());
     }
   }
 
   Future<void> _respond(String requestId, String action, {String? reason, DateTime? estimatedDelivery}) async {
     try {
-      await _functions.httpsCallable('respondToRestockRequest').call<Map<String, dynamic>>({
-        'restockRequestId': requestId,
-        'action': action,
-        'reason': reason,
-        'estimatedDeliveryIso': estimatedDelivery?.toIso8601String(),
-      });
-    } on FirebaseFunctionsException catch (e) {
-      throw RestockException(e.message ?? 'Could not update this request.');
+      final user = _auth.currentUser;
+      if (user == null) throw RestockException('Not signed in.');
+      final token = await user.getIdToken();
+      final resp = await http.post(
+        Uri.parse('https://salwanaapp.onrender.com/respondToRestockRequest'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+        body: jsonEncode({
+          'restockRequestId': requestId,
+          'action': action,
+          'reason': reason,
+          'estimatedDeliveryIso': estimatedDelivery?.toIso8601String(),
+        }),
+      );
+      if (resp.statusCode >= 400) {
+        String msg = 'Could not update this request.';
+        try {
+          final body = jsonDecode(resp.body);
+          msg = body['error'] ?? msg;
+        } catch (_) {}
+        throw RestockException(msg);
+      }
+    } catch (e) {
+      if (e is RestockException) rethrow;
+      throw RestockException(e.toString());
     }
   }
 
@@ -121,7 +158,7 @@ class RestockRepository {
 }
 
 final restockRepositoryProvider = Provider<RestockRepository>((ref) {
-  return RestockRepository(ref.watch(firestoreProvider), ref.watch(firebaseFunctionsProvider));
+  return RestockRepository(ref.watch(firestoreProvider), ref.watch(firebaseAuthProvider), ref.watch(firebaseFunctionsProvider));
 });
 
 final activeSuppliersProvider = StreamProvider<List<SupplierProfile>>((ref) {

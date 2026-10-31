@@ -973,6 +973,167 @@ app.post('/editStoreReview', verifyAuth, async (req, res) => {
   }
 });
 
+
+app.post('/createRestockRequest', verifyAuth, async (req, res) => {
+  try {
+    const uid = req.uid;
+    const { supplierId, items, notes } = req.body || {};
+    if (!supplierId) return badRequest(res, 'Missing supplierId.');
+    if (!Array.isArray(items) || items.length === 0) return badRequest(res, 'Add at least one product to request.');
+    for (const item of items) {
+      if (!item.productId || !Number.isInteger(item.requestedQuantity) || item.requestedQuantity <= 0) {
+        return badRequest(res, 'Invalid request item.');
+      }
+    }
+
+    const merchantSnap = await db.collection('users').doc(uid).get();
+    if (!merchantSnap.exists || merchantSnap.data().role !== 'merchant') return badRequest(res, 'Only merchants can create restocking requests.');
+    const consumer = merchantSnap.data();
+
+    const storeSnap = await db.collection('stores').doc(uid).get();
+    if (!storeSnap.exists) return badRequest(res, 'Store not found.');
+    const store = storeSnap.data();
+
+    const supplierSnap = await db.collection('suppliers').doc(supplierId).get();
+    if (!supplierSnap.exists) return badRequest(res, 'Supplier not found.');
+    const supplier = supplierSnap.data();
+    if (supplier.verificationStatus !== 'active') return badRequest(res, `${supplier.companyName} is not currently available.`);
+
+    // Validate each product against the supplier's catalog.
+    const productSnaps = await Promise.all(items.map((i) => db.collection('supplier_products').doc(i.productId).get()));
+    const requestItems = [];
+    for (let idx = 0; idx < items.length; idx++) {
+      const snap = productSnaps[idx];
+      if (!snap.exists) return badRequest(res, 'A selected product no longer exists in the supplier catalog.');
+      const product = snap.data();
+      if (product.supplierId !== supplierId) return badRequest(res, 'You can only request products from the selected supplier.');
+      if (product.isAvailable === false) return badRequest(res, `${product.name} is no longer available.`);
+      if (items[idx].requestedQuantity < (product.minOrderQuantity || 1)) {
+        return badRequest(res, `${product.name}: minimum order quantity is ${product.minOrderQuantity}.`);
+      }
+      requestItems.push({
+        productId: snap.id,
+        productName: product.name,
+        requestedQuantity: items[idx].requestedQuantity,
+        receivedQuantity: null,
+        estimatedUnitCost: items[idx].estimatedUnitCost ?? product.unitCost ?? 0,
+      });
+    }
+
+    const requestRef = db.collection('restock_requests').doc();
+    await requestRef.set({
+      merchantId: uid,
+      storeId: uid,
+      storeName: store.name || '',
+      supplierId,
+      supplierName: supplier.companyName,
+      items: requestItems,
+      status: 'requested',
+      rejectionReason: null,
+      estimatedDeliveryDate: null,
+      notes: notes || null,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Notify supplier (fire-and-forget)
+    db.collection('notifications').add({
+      userId: supplierId,
+      type: 'restockRequest',
+      title: 'New restocking request',
+      message: `${store.name} sent a restocking request with ${requestItems.length} product(s).`,
+      relatedRecordId: requestRef.id,
+      relatedRecordType: 'restock_request',
+      read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    }).catch(() => {});
+
+    res.json({ restockRequestId: requestRef.id });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Could not create restocking request.' });
+  }
+});
+
+
+const RESTOCK_NEXT_STATUS = { accept: 'accepted', reject: 'rejected', processing: 'processing', dispatch: 'dispatched', cancel: 'cancelled' };
+const RESTOCK_SUPPLIER_ACTIONS = new Set(['accept', 'reject', 'processing', 'dispatch']);
+const RESTOCK_MERCHANT_ACTIONS = new Set(['cancel']);
+const RESTOCK_ALLOWED_FROM = { accept: ['requested'], reject: ['requested'], processing: ['accepted'], dispatch: ['processing'], cancel: ['requested', 'accepted'] };
+const RESTOCK_RELEASING = new Set(['reject', 'cancel']);
+
+app.post('/respondToRestockRequest', verifyAuth, async (req, res) => {
+  try {
+    const uid = req.uid;
+    const { restockRequestId, action, reason, estimatedDeliveryIso } = req.body || {};
+    if (!restockRequestId || !action) return badRequest(res, 'Missing restockRequestId or action.');
+    if (!Object.prototype.hasOwnProperty.call(RESTOCK_NEXT_STATUS, action)) return badRequest(res, 'Invalid action.');
+
+    let deliveryId = null;
+
+    await db.runTransaction(async (tx) => {
+      const requestRef = db.collection('restock_requests').doc(restockRequestId);
+      const requestSnap = await tx.get(requestRef);
+      if (!requestSnap.exists) throw new Error('Restocking request not found.');
+      const restockRequest = requestSnap.data();
+
+      const isSupplier = RESTOCK_SUPPLIER_ACTIONS.has(action) && restockRequest.supplierId === uid;
+      const isMerchant = RESTOCK_MERCHANT_ACTIONS.has(action) && restockRequest.merchantId === uid;
+      if (!isSupplier && !isMerchant) throw new Error('You are not authorized to perform this action.');
+
+      if (!RESTOCK_ALLOWED_FROM[action].includes(restockRequest.status)) {
+        throw new Error(`Cannot ${action} a request that is ${restockRequest.status}.`);
+      }
+
+      tx.update(requestRef, {
+        status: RESTOCK_NEXT_STATUS[action],
+        rejectionReason: action === 'reject' ? (reason || null) : (restockRequest.rejectionReason || null),
+        estimatedDeliveryDate: estimatedDeliveryIso ? new Date(estimatedDeliveryIso) : (restockRequest.estimatedDeliveryDate || null),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      if (action === 'dispatch') {
+        const deliveryRef = db.collection('supplier_deliveries').doc();
+        deliveryId = deliveryRef.id;
+        tx.set(deliveryRef, {
+          restockRequestId,
+          merchantId: restockRequest.merchantId,
+          storeId: restockRequest.storeId,
+          supplierId: restockRequest.supplierId,
+          status: 'dispatched',
+          dispatchedAt: admin.firestore.FieldValue.serverTimestamp(),
+          deliveredAt: null,
+          confirmedAt: null,
+          confirmedByUserId: null,
+          trackingNotes: null,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    });
+
+    const requestSnap = await db.collection('restock_requests').doc(restockRequestId).get();
+    const restockRequest = requestSnap.exists ? requestSnap.data() : null;
+    // Respond immediately; notify in background.
+    res.json({ status: RESTOCK_NEXT_STATUS[action], deliveryId });
+    if (restockRequest) {
+      const notifyTargetId = uid === restockRequest.supplierId ? restockRequest.merchantId : restockRequest.supplierId;
+      const type = action === 'reject' ? 'supplierResponse' : action === 'dispatch' ? 'supplierResponse' : 'restockRequest';
+      db.collection('notifications').add({
+        userId: notifyTargetId,
+        type,
+        title: 'Restocking request update',
+        message: `Your restocking request to ${uid === restockRequest.supplierId ? restockRequest.supplierName : restockRequest.storeName} is now ${RESTOCK_NEXT_STATUS[action]}.`,
+        relatedRecordId: restockRequestId,
+        relatedRecordType: 'restock_request',
+        read: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      }).catch(() => {});
+    }
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Could not update this request.' });
+  }
+});
+
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`API running on ${PORT}`));
 const NEXT_STATUS = {

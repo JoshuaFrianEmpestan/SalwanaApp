@@ -3,13 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/state_views.dart';
-import '../../../models/product.dart';
 import '../../../models/restock_request.dart';
-import '../data/product_repository.dart';
+import '../../../models/supplier.dart';
+import '../../supplier/data/supplier_product_repository.dart';
 import '../data/restock_repository.dart';
 
 class RestockRequestFormScreen extends ConsumerStatefulWidget {
@@ -21,7 +22,7 @@ class RestockRequestFormScreen extends ConsumerStatefulWidget {
 }
 
 class _RestockRequestFormScreenState extends ConsumerState<RestockRequestFormScreen> {
-  final Map<String, Product> _selected = {};
+  final Map<String, SupplierProduct> _selected = {};
   final Map<String, TextEditingController> _quantityControllers = {};
   final Map<String, TextEditingController> _costControllers = {};
   final _notes = TextEditingController();
@@ -39,7 +40,7 @@ class _RestockRequestFormScreenState extends ConsumerState<RestockRequestFormScr
     super.dispose();
   }
 
-  void _toggle(Product p) {
+  void _toggle(SupplierProduct p) {
     setState(() {
       if (_selected.containsKey(p.id)) {
         _selected.remove(p.id);
@@ -47,8 +48,8 @@ class _RestockRequestFormScreenState extends ConsumerState<RestockRequestFormScr
         _costControllers.remove(p.id)?.dispose();
       } else {
         _selected[p.id] = p;
-        _quantityControllers[p.id] = TextEditingController(text: '${p.minStockLevel > 0 ? p.minStockLevel * 2 : 10}');
-        _costControllers[p.id] = TextEditingController(text: p.costPrice.toString());
+        _quantityControllers[p.id] = TextEditingController(text: '${p.minOrderQuantity > 0 ? p.minOrderQuantity : 1}');
+        _costControllers[p.id] = TextEditingController(text: p.unitCost.toString());
       }
     });
   }
@@ -62,7 +63,10 @@ class _RestockRequestFormScreenState extends ConsumerState<RestockRequestFormScr
     try {
       final items = _selected.values.map((p) {
         final qty = int.tryParse(_quantityControllers[p.id]!.text.trim()) ?? 0;
-        final cost = double.tryParse(_costControllers[p.id]!.text.trim()) ?? p.costPrice;
+        final cost = double.tryParse(_costControllers[p.id]!.text.trim()) ?? p.unitCost;
+        if (qty < p.minOrderQuantity) {
+          throw Exception('${p.name}: minimum order quantity is ${p.minOrderQuantity}.');
+        }
         return RestockRequestItem(productId: p.id, productName: p.name, requestedQuantity: qty, estimatedUnitCost: cost);
       }).toList();
 
@@ -83,11 +87,21 @@ class _RestockRequestFormScreenState extends ConsumerState<RestockRequestFormScr
       }
     } on RestockException catch (e) {
       if (mounted) showAppSnackBar(context, e.message, isError: true);
-    } catch (_) {
-      if (mounted) showAppSnackBar(context, 'Could not send request. Please try again.', isError: true);
+    } catch (e) {
+      if (mounted) showAppSnackBar(context, e.toString(), isError: true);
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  double get _total {
+    double sum = 0;
+    for (final p in _selected.values) {
+      final qty = int.tryParse(_quantityControllers[p.id]?.text ?? '0') ?? 0;
+      final cost = double.tryParse(_costControllers[p.id]?.text ?? '') ?? p.unitCost;
+      sum += cost * qty;
+    }
+    return sum;
   }
 
   @override
@@ -95,17 +109,17 @@ class _RestockRequestFormScreenState extends ConsumerState<RestockRequestFormScr
     final user = ref.watch(appUserProvider).valueOrNull;
     if (user == null) return const Scaffold(body: LoadingSpinner());
 
-    final productsAsync = ref.watch(storeProductsProvider(user.id));
+    final productsAsync = ref.watch(supplierCatalogProvider(widget.supplierId));
 
     return Scaffold(
       appBar: AppBar(title: const Text('New Restocking Request')),
       body: SafeArea(
         child: productsAsync.when(
           loading: () => const LoadingListView(),
-          error: (e, _) => ErrorStateView(onRetry: () => ref.invalidate(storeProductsProvider(user.id))),
+          error: (e, _) => ErrorStateView(onRetry: () => ref.invalidate(supplierCatalogProvider(widget.supplierId))),
           data: (products) {
             if (products.isEmpty) {
-              return const EmptyStateView(icon: Icons.inventory_2_outlined, title: 'No products yet', message: 'Add products before requesting a restock.');
+              return const EmptyStateView(icon: Icons.inventory_2_outlined, title: 'No products available', message: 'This supplier has no products in their catalog.');
             }
             return Column(
               children: [
@@ -135,7 +149,23 @@ class _RestockRequestFormScreenState extends ConsumerState<RestockRequestFormScr
                   decoration: const BoxDecoration(color: AppColors.surface, border: Border(top: BorderSide(color: AppColors.border))),
                   child: SafeArea(
                     top: false,
-                    child: PrimaryButton(label: 'Send Request (${_selected.length})', onPressed: _submit, loading: _submitting),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_selected.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Total', style: TextStyle(fontWeight: FontWeight.w700)),
+                                Text(AppFormatters.currency(_total), style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary)),
+                              ],
+                            ),
+                          ),
+                        PrimaryButton(label: 'Send Request (${_selected.length})', onPressed: _submit, loading: _submitting),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -148,7 +178,7 @@ class _RestockRequestFormScreenState extends ConsumerState<RestockRequestFormScr
 }
 
 class _ProductPickerTile extends StatelessWidget {
-  final Product product;
+  final SupplierProduct product;
   final bool selected;
   final VoidCallback onToggle;
   final TextEditingController? quantityController;
@@ -166,14 +196,15 @@ class _ProductPickerTile extends StatelessWidget {
       ),
       child: Column(
         children: [
-          CheckboxListTile(
-            value: selected,
-            onChanged: (_) => onToggle(),
+          ListTile(
+            leading: Checkbox(
+              value: selected,
+              onChanged: (_) => onToggle(),
+              activeColor: AppColors.primary,
+            ),
             title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-            subtitle: Text('Current stock: ${product.currentStock} ${product.unit} Â· Min: ${product.minStockLevel}', style: const TextStyle(fontSize: 11)),
-            controlAffinity: ListTileControlAffinity.leading,
-            activeColor: AppColors.primary,
-            dense: true,
+            subtitle: Text('${product.category} · ${AppFormatters.currency(product.unitCost)}/${product.unit} · Min order: ${product.minOrderQuantity}', style: const TextStyle(fontSize: 11)),
+            onTap: onToggle,
           ),
           if (selected)
             Padding(
