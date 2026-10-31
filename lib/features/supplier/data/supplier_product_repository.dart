@@ -20,9 +20,8 @@ class SupplierProductRepository {
   Stream<List<SupplierProduct>> watchSupplierCatalog(String supplierId) {
     return _col
         .where('supplierId', isEqualTo: supplierId)
-        .where('isAvailable', isEqualTo: true)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => SupplierProduct.fromMap(d.id, d.data())).toList());
+        .map((snap) => snap.docs.map((d) => SupplierProduct.fromMap(d.id, d.data())).where((p) => p.isAvailable).toList());
   }
 
   Stream<SupplierProduct?> watchProduct(String id) {
