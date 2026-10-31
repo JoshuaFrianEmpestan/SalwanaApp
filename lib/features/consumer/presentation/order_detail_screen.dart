@@ -182,7 +182,21 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
         widgets.add(PrimaryButton(label: 'Mark as Completed', onPressed: () => _act(() => repo.markCompleted(order.id)), loading: _acting));
         break;
       case OrderStatus.completed:
-        widgets.add(PrimaryButton(label: 'Issue Refund', outlined: true, onPressed: () => _act(() => repo.refund(order.id)), loading: _acting));
+        widgets.add(PrimaryButton(
+          label: 'Issue Refund',
+          outlined: true,
+          onPressed: () async {
+            final confirmed = await showConfirmDialog(
+              context,
+              title: 'Issue Refund',
+              message: 'Are you sure you want to refund this order? The order total of ${AppFormatters.currency(order.total)} will be recorded as refunded and the order will be marked as refunded.',
+              confirmLabel: 'Issue Refund',
+              destructive: true,
+            );
+            if (confirmed) await _act(() => repo.refund(order.id));
+          },
+          loading: _acting,
+        ));
         break;
       default:
         break;
