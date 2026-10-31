@@ -117,14 +117,30 @@ class RestockRepository {
 
   Future<void> confirmDelivery(String requestId, List<RestockRequestItem> receivedItems) async {
     try {
-      await _functions.httpsCallable('confirmRestockDelivery').call<Map<String, dynamic>>({
-        'restockRequestId': requestId,
-        'receivedItems': receivedItems
-            .map((i) => {'productId': i.productId, 'receivedQuantity': i.receivedQuantity ?? 0})
-            .toList(),
-      });
-    } on FirebaseFunctionsException catch (e) {
-      throw RestockException(e.message ?? 'Could not confirm delivery.');
+      final user = _auth.currentUser;
+      if (user == null) throw RestockException('Not signed in.');
+      final token = await user.getIdToken();
+      final resp = await http.post(
+        Uri.parse('https://salwanaapp.onrender.com/confirmRestockDelivery'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+        body: jsonEncode({
+          'restockRequestId': requestId,
+          'receivedItems': receivedItems
+              .map((i) => {'productId': i.productId, 'receivedQuantity': i.receivedQuantity ?? 0})
+              .toList(),
+        }),
+      );
+      if (resp.statusCode >= 400) {
+        String msg = 'Could not confirm delivery.';
+        try {
+          final body = jsonDecode(resp.body);
+          msg = body['error'] ?? msg;
+        } catch (_) {}
+        throw RestockException(msg);
+      }
+    } catch (e) {
+      if (e is RestockException) rethrow;
+      throw RestockException(e.toString());
     }
   }
 

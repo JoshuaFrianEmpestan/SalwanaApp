@@ -1134,6 +1134,174 @@ app.post('/respondToRestockRequest', verifyAuth, async (req, res) => {
   }
 });
 
+
+app.post('/confirmRestockDelivery', verifyAuth, async (req, res) => {
+  try {
+    const uid = req.uid;
+    const { restockRequestId, receivedItems } = req.body || {};
+    if (!restockRequestId) return badRequest(res, 'Missing restockRequestId.');
+    if (!Array.isArray(receivedItems) || receivedItems.length === 0) return badRequest(res, 'No received items provided.');
+    for (const item of receivedItems) {
+      if (!item.productId || !Number.isInteger(item.receivedQuantity) || item.receivedQuantity < 0) {
+        return badRequest(res, 'Invalid received item.');
+      }
+    }
+
+    let newStatus = 'received';
+    await db.runTransaction(async (tx) => {
+      const requestRef = db.collection('restock_requests').doc(restockRequestId);
+      const requestSnap = await tx.get(requestRef);
+      if (!requestSnap.exists) throw new Error('Restocking request not found.');
+      const restockRequest = requestSnap.data();
+
+      if (restockRequest.merchantId !== uid) throw new Error('You are not authorized to confirm this delivery.');
+      if (!['dispatched', 'partiallyReceived'].includes(restockRequest.status)) {
+        throw new Error(`Cannot confirm delivery for a request that is ${restockRequest.status}.`);
+      }
+
+      const items = restockRequest.items || [];
+      const updatedItems = [...items];
+
+      // Pre-read supplier products for details.
+      const supplierProductSnaps = await Promise.all(receivedItems.map((i) => tx.get(db.collection('supplier_products').doc(i.productId))));
+      // Pre-read merchant products to match by name.
+      const merchantProductsSnap = await tx.get(db.collection('products').where('merchantId', '==', uid));
+      const merchantProductsByName = new Map();
+      merchantProductsSnap.docs.forEach((d) => {
+        const name = (d.data().name || '').toString().trim().toLowerCase();
+        if (name && !merchantProductsByName.has(name)) merchantProductsByName.set(name, d);
+      });
+
+      let allFulfilled = true;
+      let anyReceived = false;
+
+      receivedItems.forEach((received, idx) => {
+        if (received.receivedQuantity <= 0) { allFulfilled = false; return; }
+        const supplierSnap = supplierProductSnaps[idx];
+        const supplierProduct = supplierSnap && supplierSnap.exists ? supplierSnap.data() : null;
+        const productName = supplierProduct ? (supplierProduct.name || '') : (items.find((i) => i.productId === received.productId)?.productName || 'Product');
+
+        const matchKey = productName.trim().toLowerCase();
+        const existingDoc = merchantProductsByName.get(matchKey);
+
+        let productRef;
+        let current = 0;
+        let storeId = restockRequest.storeId;
+        let unit = (supplierProduct && supplierProduct.unit) || 'pc';
+        let category = (supplierProduct && supplierProduct.category) || 'General';
+        let costPrice = (supplierProduct && supplierProduct.unitCost) || 0;
+
+        if (existingDoc) {
+          productRef = existingDoc.ref;
+          const existingData = existingDoc.data();
+          current = existingData.currentStock || 0;
+          storeId = existingData.storeId || storeId;
+          unit = existingData.unit || unit;
+          category = existingData.category || category;
+          costPrice = (existingData.costPrice != null) ? existingData.costPrice : costPrice;
+        } else {
+          productRef = db.collection('products').doc();
+        }
+
+        const newCurrent = current + received.receivedQuantity;
+        if (existingDoc) {
+          tx.update(productRef, { currentStock: newCurrent, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+        } else {
+          tx.set(productRef, {
+            storeId,
+            merchantId: uid,
+            name: productName,
+            description: (supplierProduct && supplierProduct.description) || '',
+            category,
+            brand: restockRequest.supplierName || '',
+            imageUrls: [],
+            supplierId: restockRequest.supplierId,
+            costPrice,
+            sellingPrice: costPrice,
+            currentStock: newCurrent,
+            reservedStock: 0,
+            minStockLevel: 5,
+            unit,
+            batchNumber: null,
+            expirationDate: null,
+            barcode: null,
+            status: 'active',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+
+        const movementRef = db.collection('inventory_movements').doc();
+        tx.set(movementRef, {
+          productId: productRef.id,
+          storeId,
+          type: 'supplierDelivery',
+          quantityBefore: current,
+          quantityChanged: received.receivedQuantity,
+          quantityAfter: newCurrent,
+          reason: `Supplier delivery confirmed (${restockRequest.supplierName})`,
+          relatedOrderId: null,
+          relatedReservationId: null,
+          relatedDeliveryId: restockRequestId,
+          performedByUserId: uid,
+          performedByName: restockRequest.storeName || '',
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        anyReceived = true;
+        const itemIdx = updatedItems.findIndex((i) => i.productId === received.productId);
+        if (itemIdx >= 0) {
+          const requested = updatedItems[itemIdx].requestedQuantity;
+          updatedItems[itemIdx] = { ...updatedItems[itemIdx], receivedQuantity: received.receivedQuantity };
+          if (received.receivedQuantity < requested) allFulfilled = false;
+        }
+      });
+
+      if (!anyReceived) throw new Error('At least one item must have a received quantity greater than zero.');
+
+      newStatus = allFulfilled ? 'received' : 'partiallyReceived';
+      tx.update(requestRef, { items: updatedItems, status: newStatus, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    });
+
+    // Update supplier_deliveries doc (fire-and-forget)
+    (async () => {
+      try {
+        const deliveryQuery = await db.collection('supplier_deliveries').where('restockRequestId', '==', restockRequestId).limit(1).get();
+        if (!deliveryQuery.empty) {
+          await deliveryQuery.docs[0].ref.update({
+            status: newStatus,
+            deliveredAt: admin.firestore.FieldValue.serverTimestamp(),
+            confirmedAt: admin.firestore.FieldValue.serverTimestamp(),
+            confirmedByUserId: uid,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+      } catch (e) {}
+    })();
+
+    // Notify supplier (fire-and-forget)
+    db.collection('restock_requests').doc(restockRequestId).get().then((snap) => {
+      const rr = snap.exists ? snap.data() : null;
+      if (rr) {
+        db.collection('notifications').add({
+          userId: rr.supplierId,
+          type: 'supplierResponse',
+          title: 'Delivery confirmed',
+          message: `${rr.storeName} confirmed receipt of your delivery.`,
+          relatedRecordId: restockRequestId,
+          relatedRecordType: 'restock_request',
+          read: false,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        }).catch(() => {});
+      }
+    }).catch(() => {});
+
+    res.json({ status: 'confirmed' });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Could not confirm delivery.' });
+  }
+});
+
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`API running on ${PORT}`));
 const NEXT_STATUS = {
