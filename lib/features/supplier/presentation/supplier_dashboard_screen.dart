@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/breakpoints.dart';
+import '../../../core/widgets/notification_bell.dart';
 import '../../../core/widgets/restock_request_tile.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../merchant/data/restock_repository.dart';
@@ -15,7 +16,7 @@ class SupplierDashboardScreen extends ConsumerWidget {
     final requestsAsync = ref.watch(supplierRestockRequestsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard')),
+      appBar: AppBar(title: const Text('Dashboard'), actions: const [NotificationBell(route: '/supplier/notifications'), SizedBox(width: 8)]),
       body: SafeArea(
         child: requestsAsync.when(
           loading: () => const LoadingListView(),

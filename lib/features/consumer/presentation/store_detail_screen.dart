@@ -40,7 +40,7 @@ class StoreDetailScreen extends ConsumerWidget {
                   foregroundColor: AppColors.textPrimary,
                   flexibleSpace: FlexibleSpaceBar(
                     background: store.bannerUrl != null
-                        ? CachedNetworkImage(fadeInDuration: Duration.zero, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: store.bannerUrl!, fit: BoxFit.cover)
+                        ? CachedNetworkImage(fadeInDuration: Duration.zero, useOldImageOnUrlChange: true, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: store.bannerUrl!, fit: BoxFit.cover)
                         : Container(color: AppColors.primarySurface),
                   ),
                 ),
@@ -59,7 +59,7 @@ class StoreDetailScreen extends ConsumerWidget {
                                 width: 64,
                                 height: 64,
                                 child: store.logoUrl != null
-                                    ? CachedNetworkImage(fadeInDuration: Duration.zero, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: store.logoUrl!, fit: BoxFit.cover)
+                                    ? CachedNetworkImage(fadeInDuration: Duration.zero, useOldImageOnUrlChange: true, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: store.logoUrl!, fit: BoxFit.cover)
                                     : Container(color: AppColors.primarySurface, child: const Icon(Icons.storefront_rounded, color: AppColors.primary)),
                               ),
                             ),

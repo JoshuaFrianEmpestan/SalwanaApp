@@ -84,7 +84,7 @@ class _ImagePickerFieldState extends ConsumerState<ImagePickerField> {
             if (_localBytes != null)
               Image.memory(_localBytes!, fit: BoxFit.cover)
             else if (widget.initialUrl?.isNotEmpty ?? false)
-              CachedNetworkImage(fadeInDuration: Duration.zero, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: widget.initialUrl!, fit: BoxFit.cover)
+              CachedNetworkImage(fadeInDuration: Duration.zero, useOldImageOnUrlChange: true, placeholder: (ctx, url) => Container(color: AppColors.neutralBg), errorWidget: (ctx, url, err) => Container(color: AppColors.neutralBg, child: const Icon(Icons.broken_image_outlined)), imageUrl: widget.initialUrl!, fit: BoxFit.cover)
             else
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,

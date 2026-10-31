@@ -23,6 +23,8 @@ class ConsumerProfileScreen extends ConsumerWidget {
     );
     if (confirmed) {
       await ref.read(authRepositoryProvider).logout();
+      ref.invalidate(authStateProvider);
+      ref.invalidate(appUserProvider);
     }
   }
 

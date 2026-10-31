@@ -70,6 +70,7 @@ import '../../features/supplier/presentation/company_profile_screen.dart';
 import '../../features/supplier/presentation/supplier_dashboard_screen.dart';
 import '../../features/supplier/presentation/supplier_product_form_screen.dart';
 import '../../features/supplier/presentation/supplier_products_list_screen.dart';
+import '../../features/supplier/presentation/supplier_transactions_screen.dart';
 import '../../features/supplier/presentation/supplier_requests_list_screen.dart';
 import '../../features/merchant/presentation/inventory_list_screen.dart';
 import '../../features/merchant/presentation/merchant_profile_screen.dart';
@@ -404,8 +405,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/supplier/products/:id/edit',
         builder: (context, state) => SupplierProductFormScreen(productId: state.pathParameters['id']!),
       ),
-      GoRoute(
-        path: '/supplier/requests/:id',
+      GoRoute(path: '/supplier/transactions', builder: (context, state) => const SupplierTransactionsScreen()),
+      GoRoute(path: '/supplier/requests/:id',
         builder: (context, state) => RestockRequestDetailScreen(requestId: state.pathParameters['id']!),
       ),
       GoRoute(path: '/merchant/suppliers', builder: (context, state) => const SupplierDirectoryScreen()),

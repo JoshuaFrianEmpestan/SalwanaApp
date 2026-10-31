@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/providers/firebase_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_text_field.dart';
@@ -34,7 +36,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _loading = true);
     try {
       await ref.read(authRepositoryProvider).login(email: _email.text.trim(), password: _password.text);
-      // Router redirect handles navigation to the correct role dashboard.
+      // On web the auth-state stream can lag behind signInWithEmailAndPassword,
+      // so wait for it to emit the new user and invalidate the cached providers
+      // before letting the router redirect.
+      await FirebaseAuth.instance.authStateChanges().firstWhere((u) => u != null).timeout(const Duration(seconds: 5));
+      ref.invalidate(authStateProvider);
+      ref.invalidate(appUserProvider);
+      if (mounted) context.go('/splash');
     } on AuthException catch (e) {
       if (mounted) showAppSnackBar(context, e.message, isError: true);
     } catch (_) {

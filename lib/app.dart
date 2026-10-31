@@ -19,12 +19,13 @@ class SalwanaApp extends ConsumerStatefulWidget {
   ConsumerState<SalwanaApp> createState() => _SalwanaAppState();
 }
 
-class _SalwanaAppState extends ConsumerState<SalwanaApp> {
+class _SalwanaAppState extends ConsumerState<SalwanaApp> with WidgetsBindingObserver {
   String? _registeredForUid;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Foreground push (§12) — background/terminated delivery is handled by
     // the platform (web service worker / OS) once a real Firebase project
     // is configured; this only covers the app-open case, which the OS
@@ -36,6 +37,21 @@ class _SalwanaAppState extends ConsumerState<SalwanaApp> {
       if (text.isEmpty) return;
       scaffoldMessengerKey.currentState?.showSnackBar(SnackBar(content: Text(text)));
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Force a repaint so images that went black while the tab was
+      // backgrounded re-decode instead of staying blank.
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   @override

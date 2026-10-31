@@ -51,6 +51,11 @@ Future<void> main() async {
     FirebaseFunctions.instance.useFunctionsEmulator('127.0.0.1', 5001);
   }
 
+  // Enlarge the in-memory image cache so images aren't evicted (and rendered
+  // black) when switching tabs on web.
+  PaintingBinding.instance.imageCache.maximumSize = 10000;
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 256 * 1024 * 1024;
+
   final prefs = await SharedPreferences.getInstance();
   final onboardingSeen = prefs.getBool(_onboardSeenKey) ?? false;
   final savedThemeMode = themeModeFromName(prefs.getString(_themeModeKey));
