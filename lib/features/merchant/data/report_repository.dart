@@ -56,13 +56,14 @@ class ReportRepository {
     final snap = await _db
         .collection('orders')
         .where('merchantId', isEqualTo: merchantId)
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(end))
+        .orderBy('createdAt', descending: true)
         .get();
     double total = 0;
     final rows = <List<String>>[];
     for (final doc in snap.docs) {
       final d = doc.data();
-      final createdAt = tsToDateOrNow(d['createdAt']);
-      if (createdAt.isBefore(start) || createdAt.isAfter(end.add(const Duration(hours: 23, minutes: 59)))) continue;
       final status = d['status'] as String? ?? '';
       if (status == 'cancelled' || status == 'paymentFailed' || status == 'pendingPayment') continue;
       final amount = asDouble(d['total']);

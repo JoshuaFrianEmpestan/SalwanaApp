@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 import '../../core/utils/file_download.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:excel/excel.dart' as xls;
@@ -75,7 +76,8 @@ class ReportExportService {
     final fileName = '${result.title.replaceAll(' ', '_')}.pdf';
 
     if (generatedByUserId != null) {
-      await _persist(bytes: bytes, fileName: fileName, format: 'pdf', title: result.title, generatedByUserId: generatedByUserId, storeId: storeId);
+      // Fire-and-forget: don't block the local download/share on the cloud upload.
+      unawaited(_persist(bytes: bytes, fileName: fileName, format: 'pdf', title: result.title, generatedByUserId: generatedByUserId, storeId: storeId));
     }
 
     if (kIsWeb) {
@@ -105,7 +107,7 @@ class ReportExportService {
     final fileName = '${result.title.replaceAll(' ', '_')}.xlsx';
 
     if (generatedByUserId != null) {
-      await _persist(bytes: bytes, fileName: fileName, format: 'excel', title: result.title, generatedByUserId: generatedByUserId, storeId: storeId);
+      unawaited(_persist(bytes: bytes, fileName: fileName, format: 'excel', title: result.title, generatedByUserId: generatedByUserId, storeId: storeId));
     }
 
     if (kIsWeb) {
