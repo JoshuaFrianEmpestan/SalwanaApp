@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -25,7 +26,33 @@ class _ConfirmDeliveryScreenState extends ConsumerState<ConfirmDeliveryScreen> {
     return _controllers.putIfAbsent(item.productId, () => TextEditingController(text: '${item.requestedQuantity}'));
   }
 
+  int _receivedQty(RestockRequestItem item) {
+    return int.tryParse(_controllers[item.productId]?.text.trim() ?? '0') ?? 0;
+  }
+
+  double get _totalReceivedValue {
+    // placeholder; computed per request in build
+    return 0;
+  }
+
   Future<void> _submit(RestockRequest request) async {
+    // validate
+    for (final item in request.items) {
+      final q = _receivedQty(item);
+      if (q < 0) {
+        showAppSnackBar(context, 'Received quantity cannot be negative.', isError: true);
+        return;
+      }
+      if (q > item.requestedQuantity) {
+        final ok = await showConfirmDialog(
+          context,
+          title: 'Over-received',
+          message: 'You entered $q for ${item.productName}, which exceeds the requested ${item.requestedQuantity}. Continue?',
+          confirmLabel: 'Continue',
+        );
+        if (!ok) return;
+      }
+    }
     setState(() => _submitting = true);
     try {
       final receivedItems = request.items
@@ -39,7 +66,7 @@ class _ConfirmDeliveryScreenState extends ConsumerState<ConfirmDeliveryScreen> {
           .toList();
       await ref.read(restockRepositoryProvider).confirmDelivery(request.id, receivedItems);
       if (mounted) {
-        showAppSnackBar(context, 'Delivery confirmed â€” inventory updated.');
+        showAppSnackBar(context, 'Delivery confirmed — inventory updated.');
         context.pop();
       }
     } on RestockException catch (e) {
@@ -49,6 +76,14 @@ class _ConfirmDeliveryScreenState extends ConsumerState<ConfirmDeliveryScreen> {
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  @override
+  void dispose() {
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
+    super.dispose();
   }
 
   @override
@@ -86,20 +121,34 @@ class _ConfirmDeliveryScreenState extends ConsumerState<ConfirmDeliveryScreen> {
                           padding: const EdgeInsets.all(12),
                           margin: const EdgeInsets.only(bottom: 10),
                           decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                                    Text('Requested: ${item.requestedQuantity}', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(
-                                width: 90,
-                                child: AppTextField(controller: _controllerFor(item), label: 'Received', keyboardType: TextInputType.number),
+                              Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                              const SizedBox(height: 4),
+                              Text('Requested: ${item.requestedQuantity}  ·  Unit cost: ${AppFormatters.currency(item.estimatedUnitCost)}',
+                                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: AppTextField(
+                                      controller: _controllerFor(item),
+                                      label: 'Received quantity',
+                                      keyboardType: TextInputType.number,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: InputDecorator(
+                                      decoration: const InputDecoration(labelText: 'Received value', isDense: true, border: OutlineInputBorder()),
+                                      child: Text(
+                                        AppFormatters.currency(item.estimatedUnitCost * (_receivedQty(item))),
+                                        style: const TextStyle(fontWeight: FontWeight.w600),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -110,7 +159,10 @@ class _ConfirmDeliveryScreenState extends ConsumerState<ConfirmDeliveryScreen> {
                 ),
                 Padding(
                   padding: const EdgeInsets.all(16),
-                  child: SafeArea(top: false, child: PrimaryButton(label: 'Confirm Delivery', onPressed: () => _submit(request), loading: _submitting)),
+                  child: SafeArea(
+                    top: false,
+                    child: PrimaryButton(label: 'Confirm Delivery', onPressed: () => _submit(request), loading: _submitting),
+                  ),
                 ),
               ],
             );
