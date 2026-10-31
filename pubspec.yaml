@@ -55,6 +55,7 @@ dependencies:
 
   # Opening report download links
   url_launcher: ^6.3.0
+  web: ^1.1.1
 
   cupertino_icons: ^1.0.8
   http: ^1.6.0

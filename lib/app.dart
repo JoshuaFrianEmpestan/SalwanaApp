@@ -1,5 +1,8 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:js_interop';
+import 'package:web/web.dart' as web;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/providers/firebase_providers.dart';
 import 'core/router/app_router.dart';
@@ -26,6 +29,13 @@ class _SalwanaAppState extends ConsumerState<SalwanaApp> with WidgetsBindingObse
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (kIsWeb) {
+      web.document.addEventListener('visibilitychange', (web.Event _) {
+        if (web.document.visibilityState == 'visible' && mounted) {
+          setState(() {});
+        }
+      }.toJS);
+    }
     // Foreground push (§12) — background/terminated delivery is handled by
     // the platform (web service worker / OS) once a real Firebase project
     // is configured; this only covers the app-open case, which the OS
