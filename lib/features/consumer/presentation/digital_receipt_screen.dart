@@ -100,14 +100,20 @@ class _DigitalReceiptScreenState extends ConsumerState<DigitalReceiptScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Digital Receipt')),
       body: SafeArea(
-        child: receiptAsync.when(
+        child: orderAsync.when(
           loading: () => const LoadingListView(),
-          error: (e, _) => ErrorStateView(onRetry: () => ref.invalidate(receiptProvider(widget.orderId))),
-          data: (received) {
-            DigitalReceipt? r = received;
+          error: (e, _) => ErrorStateView(onRetry: () => ref.invalidate(orderProvider(widget.orderId))),
+          data: (order) {
+            if (order == null) {
+              return const EmptyStateView(
+                icon: Icons.receipt_long_outlined,
+                title: 'Order not found',
+                message: 'This order may no longer be available.',
+              );
+            }
+            final savedReceipt = receiptAsync.valueOrNull;
+            DigitalReceipt? r = savedReceipt;
             if (r == null) {
-              final order = orderAsync.valueOrNull;
-              if (order != null) {
                 r = DigitalReceipt(
                   id: widget.orderId,
                   receiptNumber: 'SLW-${DateTime.now().year}-${widget.orderId.substring(0, 8).toUpperCase()}',
@@ -132,16 +138,8 @@ class _DigitalReceiptScreenState extends ConsumerState<DigitalReceiptScreen> {
                   transactionReference: widget.orderId,
                   issuedAt: order.createdAt,
                 );
-              }
             }
-            if (r == null) {
-              return const EmptyStateView(
-                icon: Icons.receipt_long_outlined,
-                title: 'Receipt not available yet',
-                message: 'A receipt is generated once payment is confirmed.',
-              );
-            }
-            final receipt = r;
+            final receipt = r!;
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
