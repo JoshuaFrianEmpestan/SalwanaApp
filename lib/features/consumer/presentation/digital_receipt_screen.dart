@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../models/digital_receipt.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/enums.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../data/payment_repository.dart';
-import 'package:go_router/go_router.dart';
+import '../../../models/digital_receipt.dart';
 
 class DigitalReceiptScreen extends ConsumerWidget {
   final String orderId;
