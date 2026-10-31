@@ -8,6 +8,7 @@ import '../../../core/widgets/reservation_list_tile.dart';
 import '../../../core/widgets/state_views.dart';
 import '../data/order_repository.dart';
 import '../data/reservation_repository.dart';
+import '../../../models/reservation.dart';
 import '../../../models/order.dart' as model;
 
 /// Orders tab (consumer) — Reservations (module 6) and Orders (module 8)
@@ -170,17 +171,100 @@ class _ConsumerReservationsList extends ConsumerWidget {
               message: 'Reserve a product from any store to see it here.',
             );
           }
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: reservations.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (context, i) => ReservationListTile(
-              reservation: reservations[i],
-              onTap: () => context.push('/consumer/reservations/${reservations[i].id}'),
-            ),
-          );
+          return _ConsumerReservationsBody(reservations: reservations);
         },
       ),
     );
   }
 }
+
+class _ConsumerReservationsBody extends StatefulWidget {
+  final List<Reservation> reservations;
+  const _ConsumerReservationsBody({required this.reservations});
+
+  @override
+  State<_ConsumerReservationsBody> createState() => _ConsumerReservationsBodyState();
+}
+
+class _ConsumerReservationsBodyState extends State<_ConsumerReservationsBody> {
+  String _selected = 'all';
+
+  @override
+  Widget build(BuildContext context) {
+    final reservations = widget.reservations;
+    final counts = <String, int>{};
+    counts['all'] = reservations.length;
+    for (final r in reservations) {
+      counts[r.status.name] = (counts[r.status.name] ?? 0) + 1;
+    }
+    final filtered = _selected == 'all'
+        ? reservations
+        : reservations.where((r) => r.status.name == _selected).toList();
+
+    final tabs = <Map<String, String>>[
+      {'key': 'all', 'label': 'All'},
+      {'key': 'pending', 'label': 'Pending'},
+      {'key': 'approved', 'label': 'Approved'},
+      {'key': 'preparing', 'label': 'Preparing'},
+      {'key': 'readyForPickup', 'label': 'Ready for Pickup'},
+      {'key': 'outForDelivery', 'label': 'Out for Delivery'},
+      {'key': 'completed', 'label': 'Completed'},
+      {'key': 'rejected', 'label': 'Rejected'},
+      {'key': 'cancelled', 'label': 'Cancelled'},
+      {'key': 'expired', 'label': 'Expired'},
+    ];
+    final visibleTabs = tabs.where((t) => t['key'] == 'all' || (counts[t['key']] ?? 0) > 0).toList();
+
+    return Column(
+      children: [
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 40,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: visibleTabs.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, i) {
+              final t = visibleTabs[i];
+              final key = t['key']!;
+              final selected = _selected == key;
+              final count = counts[key] ?? 0;
+              return ChoiceChip(
+                label: Text('${t['label']} ($count)'),
+                selected: selected,
+                onSelected: (_) => setState(() => _selected = key),
+                selectedColor: AppColors.primarySurface,
+                labelStyle: TextStyle(
+                  fontSize: 12,
+                  color: selected ? AppColors.primary : AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+                side: BorderSide(color: selected ? AppColors.primary : AppColors.border),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: filtered.isEmpty
+              ? EmptyStateView(
+                  icon: Icons.filter_alt_off_outlined,
+                  title: 'No ${_selected == 'all' ? '' : (visibleTabs.firstWhere((t) => t['key'] == _selected)['label']!.toLowerCase() + ' ')}reservations',
+                  message: 'Reservations with this status will appear here.',
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, i) => ReservationListTile(
+                    reservation: filtered[i],
+                    onTap: () => context.push('/consumer/reservations/${filtered[i].id}'),
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
