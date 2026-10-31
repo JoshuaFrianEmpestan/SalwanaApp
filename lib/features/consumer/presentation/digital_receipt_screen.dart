@@ -139,7 +139,7 @@ class _DigitalReceiptScreenState extends ConsumerState<DigitalReceiptScreen> {
                   issuedAt: order.createdAt,
                 );
             }
-            final receipt = r!;
+            final receipt = r as DigitalReceipt;
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
@@ -226,8 +226,9 @@ class _DigitalReceiptScreenState extends ConsumerState<DigitalReceiptScreen> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: _exporting ? null : () => Navigator.of(context).maybePop(),
+                        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
                         icon: const Icon(Icons.arrow_back_rounded, size: 16),
-                        label: const Text('Back'),
+                        label: const Text('Back', maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -237,8 +238,9 @@ class _DigitalReceiptScreenState extends ConsumerState<DigitalReceiptScreen> {
                           final r = receipt;
                           _print(r);
                         },
+                        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
                         icon: const Icon(Icons.print_rounded, size: 16),
-                        label: const Text('Print'),
+                        label: const Text('Print', maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -248,8 +250,9 @@ class _DigitalReceiptScreenState extends ConsumerState<DigitalReceiptScreen> {
                           final r = receipt;
                           _download(r);
                         },
+                        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
                         icon: const Icon(Icons.download_rounded, size: 16),
-                        label: const Text('Download'),
+                        label: const Text('Download', maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis),
                       ),
                     ),
                   ],

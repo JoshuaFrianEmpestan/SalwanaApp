@@ -193,7 +193,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
               confirmLabel: 'Continue',
               destructive: true,
             );
-            if (!first) return;
+            if (!first || !mounted) return;
             final second = await showConfirmDialog(
               context,
               title: 'Confirm Refund',

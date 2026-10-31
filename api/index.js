@@ -203,9 +203,9 @@ app.post('/processCheckout', verifyAuth, async (req, res) => {
     const settings = settingsSnap.exists ? settingsSnap.data() : { defaultDeliveryFee: 0, platformFeePercent: 5 };
 
     const checkoutGroupId = idempotencyKey;
-    const orderIds = [];
 
-    for (const group of groups) {
+    // Process each merchant group in parallel - they touch disjoint product/order docs.
+    const orderIds = await Promise.all(groups.map(async (group) => {
       const orderId = await db.runTransaction(async (tx) => {
         const storeRef = db.collection('stores').doc(group.storeId);
         const storeSnap = await tx.get(storeRef);
@@ -361,19 +361,21 @@ app.post('/processCheckout', verifyAuth, async (req, res) => {
 
         return orderRef.id;
       });
-      orderIds.push(orderId);
-    }
+    }));
 
-    try {
-      const cartItemsRef = db.collection('carts').doc(uid).collection('items');
-      const batch = db.batch();
-      for (const group of groups) {
-        for (const item of group.items) {
-          batch.delete(cartItemsRef.doc(item.productId));
+    // Fire-and-forget cart cleanup - don't block the response.
+    (async () => {
+      try {
+        const cartItemsRef = db.collection('carts').doc(uid).collection('items');
+        const batch = db.batch();
+        for (const group of groups) {
+          for (const item of group.items) {
+            batch.delete(cartItemsRef.doc(item.productId));
+          }
         }
-      }
-      await batch.commit();
-    } catch (e) {}
+        await batch.commit();
+      } catch (e) {}
+    })();
 
     const result = { checkoutGroupId, orderIds };
     await attemptRef.set({ ...result, uid, createdAt: admin.firestore.FieldValue.serverTimestamp() });

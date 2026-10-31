@@ -102,7 +102,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               children: [
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                     children: [
                       for (final entry in byStore.entries) ...[
                         _StoreCheckoutCard(storeId: entry.key, items: entry.value, config: _configFor(entry.key), onChanged: () => setState(() {})),
@@ -129,7 +129,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                         const Text('Final total (with delivery/platform fees) is confirmed after you place the order.',
                             style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                         const SizedBox(height: 12),
-                        PrimaryButton(label: 'Place Order', onPressed: () => _placeOrder(byStore), loading: _placing),
+                        PrimaryButton(label: _placing ? 'Placing Order...' : 'Place Order', onPressed: _placing ? null : () => _placeOrder(byStore), loading: _placing),
                       ],
                     ),
                   ),
@@ -201,7 +201,7 @@ class _StoreCheckoutCard extends ConsumerWidget {
             ],
           ),
           if (config.fulfillmentType == FulfillmentType.delivery) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 14),
             _DeliveryAddressSelector(config: config, onChanged: onChanged),
           ],
           const SizedBox(height: 14),
@@ -280,6 +280,7 @@ class _DeliveryAddressSelectorState extends ConsumerState<_DeliveryAddressSelect
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: _manual ? null : config.selectedAddressId,
           decoration: const InputDecoration(labelText: 'Saved Address', isDense: true),
           items: [

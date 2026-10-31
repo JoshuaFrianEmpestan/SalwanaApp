@@ -8,8 +8,9 @@ import '../../../core/widgets/reservation_list_tile.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../consumer/data/order_repository.dart';
 import '../../consumer/data/reservation_repository.dart';
+import '../../../models/order.dart' as model;
 
-/// Orders tab (merchant) â€” Orders (module 8, fulfillment actions) and
+/// Orders tab (merchant) — Orders (module 8, fulfillment actions) and
 /// Reservations (module 6) side by side.
 class MerchantOrdersTabScreen extends StatelessWidget {
   const MerchantOrdersTabScreen({super.key});
@@ -54,33 +55,109 @@ class _MerchantOrdersList extends ConsumerWidget {
               message: 'Consumer orders for your store will appear here.',
             );
           }
-          final actionable = orders.where((o) => o.status.isActive && o.status.name != 'pendingPayment').length;
-          return Column(
-            children: [
-              if (actionable > 0)
-                Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: AppColors.infoBg, borderRadius: BorderRadius.circular(10)),
-                  child: Text('$actionable order${actionable == 1 ? '' : 's'} to fulfill', style: const TextStyle(fontSize: 12, color: AppColors.info, fontWeight: FontWeight.w600)),
-                ),
-              Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: orders.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (context, i) => OrderListTile(
-                    order: orders[i],
-                    showConsumerName: true,
-                    onTap: () => context.push('/merchant/order-details/${orders[i].id}'),
-                  ),
-                ),
-              ),
-            ],
-          );
+          return _MerchantOrdersBody(orders: orders);
         },
       ),
+    );
+  }
+}
+
+class _MerchantOrdersBody extends StatefulWidget {
+  final List<model.Order> orders;
+  const _MerchantOrdersBody({required this.orders});
+
+  @override
+  State<_MerchantOrdersBody> createState() => _MerchantOrdersBodyState();
+}
+
+class _MerchantOrdersBodyState extends State<_MerchantOrdersBody> {
+  String _selected = 'all';
+
+  @override
+  Widget build(BuildContext context) {
+    final orders = widget.orders;
+    final counts = <String, int>{};
+    counts['all'] = orders.length;
+    for (final o in orders) {
+      counts[o.status.name] = (counts[o.status.name] ?? 0) + 1;
+    }
+    final filtered = _selected == 'all'
+        ? orders
+        : orders.where((o) => o.status.name == _selected).toList();
+    final actionable = orders.where((o) => o.status.isActive && o.status.name != 'pendingPayment').length;
+
+    final tabs = <Map<String, String>>[
+      {'key': 'all', 'label': 'All'},
+      {'key': 'pendingPayment', 'label': 'Pending'},
+      {'key': 'confirmed', 'label': 'Confirmed'},
+      {'key': 'preparing', 'label': 'Preparing'},
+      {'key': 'readyForPickup', 'label': 'Ready for Pickup'},
+      {'key': 'outForDelivery', 'label': 'Out for Delivery'},
+      {'key': 'completed', 'label': 'Completed'},
+      {'key': 'cancelled', 'label': 'Cancelled'},
+      {'key': 'paymentFailed', 'label': 'Payment Failed'},
+      {'key': 'refunded', 'label': 'Refunded'},
+    ];
+    final visibleTabs = tabs.where((t) => t['key'] == 'all' || (counts[t['key']] ?? 0) > 0).toList();
+
+    return Column(
+      children: [
+        if (actionable > 0)
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: AppColors.infoBg, borderRadius: BorderRadius.circular(10)),
+            child: Text('$actionable order${actionable == 1 ? '' : 's'} to fulfill', style: const TextStyle(fontSize: 12, color: AppColors.info, fontWeight: FontWeight.w600)),
+          ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 40,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: visibleTabs.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, i) {
+              final t = visibleTabs[i];
+              final key = t['key']!;
+              final selected = _selected == key;
+              final count = counts[key] ?? 0;
+              return ChoiceChip(
+                label: Text('${t['label']} ($count)'),
+                selected: selected,
+                onSelected: (_) => setState(() => _selected = key),
+                selectedColor: AppColors.primarySurface,
+                labelStyle: TextStyle(
+                  fontSize: 12,
+                  color: selected ? AppColors.primary : AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+                side: BorderSide(color: selected ? AppColors.primary : AppColors.border),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: filtered.isEmpty
+              ? const EmptyStateView(
+                  icon: Icons.filter_alt_off_outlined,
+                  title: 'No orders in this category',
+                  message: 'Orders with this status will appear here.',
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, i) => OrderListTile(
+                    order: filtered[i],
+                    showConsumerName: true,
+                    onTap: () => context.push('/merchant/order-details/${filtered[i].id}'),
+                  ),
+                ),
+        ),
+      ],
     );
   }
 }
